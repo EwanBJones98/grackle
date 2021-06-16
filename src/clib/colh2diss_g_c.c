@@ -102,6 +102,7 @@ void colh2diss_g_c(int temperatureBinIndex, double T, int idt, chemistry_data *u
         fittingParams[19]  =    5.864073e-1;
         fittingParams[20]  =   -2.056313e0;
     } else if (idt == 1) {
+        fittingParams[0]   =   -1.427664e+02;
         fittingParams[1]   =    4.270741e+01;
         fittingParams[2]   =   -2.027365e+00;
         fittingParams[3]   =   -2.582097e-01;
