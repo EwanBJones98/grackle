@@ -148,15 +148,5 @@ if __name__=="__main__":
     pyplot.tight_layout()
     pyplot.savefig("%s.png" % output)
 
-    #! DELETE THIS WHEN FIXED
-    f = open(os.path.expanduser("~") + "/Desktop/freefallDEBUG_oldC.txt", "w+")
-    f.write("H2I \t \t \t \t \t \t density \t \t \t \t \t \t temperature \n")
-    for i, dens in enumerate(data["density"]):
-        H2I = data["H2I"][i]
-        temp = data["temperature"][i]
-        f.write(f"{H2I} \t \t {dens} \t \t {temp} \n")
-    f.close()
-
-
     # save data arrays as a yt dataset
     yt.save_as_dataset({}, "%s.h5" % output, data)

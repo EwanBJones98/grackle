@@ -187,7 +187,7 @@ int calc_rates_g_c(chemistry_data *userChemistry, chemistry_data_storage *userRa
     *   are different by the reciprocal of the above factor multiplying [L]).
     * 
     */
-    double coolingUnits = (pow(userUnits->a_value, 5) * pow(lengthBase1, 2) * pow(mh, 2)) \
+    double coolingUnits = (pow(userUnits->a_units, 5) * pow(lengthBase1, 2) * pow(mh, 2)) \
                           / (densityBase1 * pow(timeBase1, 3));
 
     //* 3) Units for radiative transfer coefficients are 1/[time].
