@@ -77,6 +77,7 @@ typedef struct
   // densities of individual metal species in dust grains
   gr_float *dust_metal_densities[NUM_METAL_SPECIES];
   gr_float *SNe_ThisTimeStep;
+  gr_float *isrf_habing;
 
 } grackle_field_data;
 

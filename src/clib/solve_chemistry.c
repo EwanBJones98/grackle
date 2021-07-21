@@ -34,7 +34,7 @@ extern void FORTRAN_NAME(solve_rate_cool_g)(
 	gr_float *HI, gr_float *HII, gr_float *HeI, gr_float *HeII, gr_float *HeIII,
 	int *in, int *jn, int *kn, int *nratec, int *iexpand,
         int *ispecies, int *imetal, int *imcool, int *idust, int *idustall,
-        int *ifdust, int *idim,
+        int *idustfield, int *idim,
 	int *is, int *js, int *ks, int *ie, int *je, int *ke,
         int *ih2co, int *ipiht, int *igammah,
 	double *dx, double *dt, double *aye, double *temstart, double *temend,
@@ -91,7 +91,8 @@ extern void FORTRAN_NAME(solve_rate_cool_g)(
         gr_float *dmet4, gr_float *dmet5, gr_float *dmet6,
         gr_float *dmet7, gr_float *dmet8, gr_float *dmet9,
         gr_float *dmet10,
-        gr_float *sne);
+        gr_float *sne,
+        int *iisrffield, gr_float* isrf_habing);
 
 int local_solve_chemistry(chemistry_data *my_chemistry,
                           chemistry_data_storage *my_rates,
@@ -388,7 +389,9 @@ int local_solve_chemistry(chemistry_data *my_chemistry,
     my_fields->dust_metal_densities[7],
     my_fields->dust_metal_densities[8],
     my_fields->dust_metal_densities[9],
-    my_fields->SNe_ThisTimeStep);
+    my_fields->SNe_ThisTimeStep,
+    &my_chemistry->use_isrf_field,
+    my_fields->isrf_habing);
 
   return SUCCESS;
 

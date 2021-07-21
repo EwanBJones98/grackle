@@ -6,7 +6,7 @@
      &                  cooltime,
      &                in, jn, kn, nratec, iexpand, 
      &                ispecies, imetal, imcool, idust,
-     &                idustall,ifdust, idim,
+     &                idustall, idustfield, idim,
      &                is, js, ks, ie, je, ke, ih2co, ipiht, igammah,
      &                aye, temstart, temend,
      &                utem, uxyz, uaye, urho, utim,
@@ -31,7 +31,8 @@
      &                metGridRank, metGridDim,
      &                metPar1, metPar2, metPar3, metPar4, metPar5,
      &                metDataSize, metCooling, metHeating, clnew,
-     &                iVheat, iMheat, Vheat, Mheat)
+     &                iVheat, iMheat, Vheat, Mheat,
+     &                iisrffield, isrf_habing)
 
 !  SOLVE RADIATIVE COOLING/HEATING EQUATIONS
 !
@@ -62,8 +63,9 @@
       integer in, jn, kn, is, js, ks, ie, je, ke, nratec, 
      &        iexpand, ih2co, ipiht, ispecies, imetal, idim,
      &        imcool, idust, idustall,
-     &        ifdust, igammah, ih2optical, iciecool,
-     &        clnew, iVheat, iMheat, iradtrans, iradshield
+     &        idustfield, igammah, ih2optical, iciecool,
+     &        clnew, iVheat, iMheat, iradtrans, iradshield,
+     &        iisrffield
 
       real*8  aye, temstart, temend,
      &        utem, uxyz, uaye, urho, utim,
@@ -76,6 +78,7 @@
      &        DI(in,jn,kn),  DII(in,jn,kn),  HDI(in,jn,kn),
      &        metal(in,jn,kn), dust(in,jn,kn),
      &        Vheat(in,jn,kn), Mheat(in,jn,kn),
+     &        isrf_habing(in,jn,kn),
      &        cooltime(in,jn,kn)
       real*8  photogamma(in,jn,kn)
       real*8  hyd01ka(nratec), h2k01a(nratec), vibha(nratec), 
@@ -204,7 +207,7 @@
                   metal(i,j,k) = metal(i,j,k)/real(aye**3, RKIND)
                enddo
             endif
-            if (ifdust .eq. 1) then
+            if (idustfield .eq. 1) then
                do i = is+1, ie+1
                   dust(i,j,k) = dust(i,j,k)/real(aye**3, RKIND)
                enddo
@@ -251,7 +254,7 @@
      &                d, e, u, v, w, de, HI, HII, HeI, HeII, HeIII,
      &                in, jn, kn, nratec, 
      &                iexpand, ispecies, imetal, imcool,
-     &                idust, idustall, ifdust,
+     &                idust, idustall, idustfield,
      &                idim, is, ie, j, k, ih2co, ipiht, 1, igammah,
      &                aye, temstart, temend, z_solar, fgr,
      &                utem, uxyz, uaye, urho, utim,
@@ -285,7 +288,7 @@
      &                metPar1, metPar2, metPar3, metPar4, metPar5,
      &                metDataSize, metCooling, metHeating, clnew,
      &                iVheat, iMheat, Vheat, Mheat,
-     &                itmask)
+     &                iisrffield, isrf_habing, itmask)
 
 !        Compute the cooling time on the slice
 !          (the gamma used here is the same as used to calculate the pressure
@@ -360,7 +363,7 @@
                   metal(i,j,k) = metal(i,j,k)*real(aye**3, RKIND)
                enddo
             endif
-            if (ifdust .eq. 1) then
+            if (idustfield .eq. 1) then
                do i = is+1, ie+1
                   dust(i,j,k) = dust(i,j,k)*real(aye**3, RKIND)
                enddo

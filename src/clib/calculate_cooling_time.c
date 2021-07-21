@@ -35,7 +35,7 @@ extern void FORTRAN_NAME(cool_multi_time_g)(
 	gr_float *cooltime,
 	int *in, int *jn, int *kn, int *nratec, int *iexpand,
         int *ispecies, int *imetal, int *imcool, int *idust, int *idustall,
-        int *ifdust, int *idim,
+        int *idustfield, int *idim,
 	int *is, int *js, int *ks, int *ie, int *je, int *ke, 
         int *ih2co, int *ipiht, int *igammah,
 	double *aye, double *temstart, double *temend,
@@ -71,7 +71,8 @@ extern void FORTRAN_NAME(cool_multi_time_g)(
         double *metPar4, double *metPar5,
  	long long *metDataSize, double *metCooling,
         double *metHeating, int *clnew,
-        int *iVheat, int *iMheat, gr_float *Vheat, gr_float *Mheat);
+        int *iVheat, int *iMheat, gr_float *Vheat, gr_float *Mheat,
+        int *iisrffield, gr_float* isrf_habing);
 
 int local_calculate_cooling_time(chemistry_data *my_chemistry,
                                  chemistry_data_storage *my_rates,
@@ -275,7 +276,9 @@ int local_calculate_cooling_time(chemistry_data *my_chemistry,
        &my_chemistry->use_volumetric_heating_rate,
        &my_chemistry->use_specific_heating_rate,
        my_fields->volumetric_heating_rate,
-       my_fields->specific_heating_rate);
+       my_fields->specific_heating_rate,
+       &my_chemistry->use_isrf_field,
+       my_fields->isrf_habing);
  
   return SUCCESS;
 }

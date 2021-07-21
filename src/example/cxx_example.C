@@ -62,6 +62,7 @@ int main(int argc, char *argv[])
   // Access the parameter storage with the struct you've created
   // or with the grackle_data pointer declared in grackle.h (see further below).
   grackle_data->use_grackle = 1;            // chemistry on
+  grackle_data->use_isrf_field = 1;
   grackle_data->with_radiative_cooling = 1; // cooling on
   grackle_data->primordial_chemistry = 3;   // molecular network with H, He, D
   grackle_data->dust_chemistry = 1;
@@ -143,6 +144,9 @@ int main(int argc, char *argv[])
     my_fields.gas_metal_densities[f] = new gr_float[field_size];
     my_fields.dust_metal_densities[f] = new gr_float[field_size];
   }
+  
+  // interstellar radiation field strength
+  my_fields.isrf_habing = new gr_float[field_size];
 
   // set temperature units
   double temperature_units = mh * pow(my_units.a_units * 
@@ -217,6 +221,7 @@ int main(int argc, char *argv[])
             (my_fields.dust_metal_densities[f][0] / my_fields.density[0]));
     gmtot += my_fields.gas_metal_densities[f][0];
     dmtot += my_fields.dust_metal_densities[f][0];
+    my_fields.isrf_habing[i] = grackle_data->interstellar_radiation_field;
   }
   fprintf(stderr, "BEFORE TOTALS: %g, %g, %g\n", gmtot, dmtot, (gmtot+dmtot));
 
