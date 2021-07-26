@@ -174,7 +174,7 @@
      &        igammah, ih2optical, iciecool, ithreebody,
      &        ndratec, clnew, iVheat, iMheat, iH2shield, iradshield,
      &        iradtrans, iradcoupled, iradstep, irt_honly, iDustEvol, 
-     &        iisrffield
+     &        iisrffield, ifdust
 
       real*8  dx, dt, aye, temstart, temend, gamma,
      &        utim, uxyz, uaye, urho, utem, fh, dtoh, z_solar, 
@@ -966,7 +966,7 @@ c -------------------------------------------------------------------
 !     Arguments
 
       integer in, jn, kn, is, ie, js, je, ks, ke, ispecies, imetal,
-     &        iDustEvol, ifdust
+     &        iDustEvol, ifdust, idustfield
       R_PREC  de(in,jn,kn), sne(in,jn,kn), HI(in,jn,kn), HII(in,jn,kn),
      &        HeI(in,jn,kn), HeII(in,jn,kn), HeIII(in,jn,kn),
      &        HM(in,jn,kn),  H2I(in,jn,kn), H2II(in,jn,kn),
