@@ -74,8 +74,10 @@ typedef struct
 
   // densities of individual metal species in gas phase
   gr_float *gas_metal_densities[NUM_METAL_SPECIES];
+  //gr_float *gas_metal_densities;
   // densities of individual metal species in dust grains
   gr_float *dust_metal_densities[NUM_METAL_SPECIES];
+  //gr_float *dust_metal_densities;
   gr_float *SNe_ThisTimeStep;
   gr_float *isrf_habing;
 
