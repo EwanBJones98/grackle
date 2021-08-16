@@ -8,7 +8,7 @@
      &                HI, HII, HeI, HeII, HeIII,
      &                in, jn, kn, nratec, iexpand, 
      &                ispecies, imetal, imcool, idust,
-     &                idustall, idustfield, idim,
+     &                idustall, ifdust, idim,
      &                is, js, ks, ie, je, ke, ih2co, ipiht, igammah,
      &                dx, dt, aye, temstart, temend, 
      &                utem, uxyz, uaye, urho, utim,
@@ -49,8 +49,7 @@
      &                met1, met2, met3, met4, met5, met6,
      &                met7, met8, met9, met10,
      &                dmet1, dmet2, dmet3, dmet4, dmet5, dmet6,
-     &                dmet7, dmet8, dmet9, dmet10, sne,
-     &                iisrffield, isrf_habing)
+     &                dmet7, dmet8, dmet9, dmet10, sne)
 
 !
 !  SOLVE MULTI-SPECIES RATE EQUATIONS AND RADIATIVE COOLING
@@ -93,8 +92,7 @@
 !    imcool   - flag if there is metal cooling
 !    idust    - flag for H2 formation on dust grains
 !    idustall - flag for dust (0 - none, 1 - heating/cooling + H2 form.)
-!    idustfield - flag if a dust density field is present
-!    iisrffield - flag if a field for the interstellar radiation field is present
+!    ifdust   - flag if a dust density field is present
 !    ih2co    - flag to include H2 cooling (1 = on, 0 = off)
 !    ipiht    - flag to include photoionization heating (1 = on, 0 = off)
 !    iH2shield - flag for approximate self-shielding of H2 (Wolcott-Green+ 2011)
@@ -170,11 +168,10 @@
 
       integer icool, in, jn, kn, is, js, ks, ie, je, ke, nratec, 
      &        iexpand, ih2co, ipiht, ispecies, imetal, idim,
-     &        ierr, imcool, idust, idustall, idustfield,
+     &        ierr, imcool, idust, idustall, ifdust,
      &        igammah, ih2optical, iciecool, ithreebody,
      &        ndratec, clnew, iVheat, iMheat, iH2shield, iradshield,
-     &        iradtrans, iradcoupled, iradstep, irt_honly, iDustEvol, 
-     &        iisrffield, ifdust
+     &        iradtrans, iradcoupled, iradstep, irt_honly, iDustEvol
 
       real*8  dx, dt, aye, temstart, temend, gamma,
      &        utim, uxyz, uaye, urho, utem, fh, dtoh, z_solar, 
@@ -197,12 +194,11 @@
       R_PREC  kphHI(in,jn,kn), kphHeI(in,jn,kn), kphHeII(in,jn,kn),
      &        kdissH2I(in,jn,kn), photogamma(in,jn,kn)
 
-!  H2 self-shielding length-scale field
+! H2 self-shielding length-scale field
 
       R_PREC  xH2shield(in,jn,kn)
 
 ! Dust growth and destruction fields
-
       R_PREC  sne(in,jn,kn),
      &        met1(in,jn,kn), met2(in,jn,kn), met3(in,jn,kn),
      &        met4(in,jn,kn), met5(in,jn,kn), met6(in,jn,kn),
@@ -214,10 +210,6 @@
      &        dmet10(in,jn,kn), dmet11(in,jn,kn),
      &        metpt(NUM_METAL_SPECIES+1),
      &        dmetpt(NUM_METAL_SPECIES+1)
-
-!  Interstellar radiation field for dust heating
-
-      R_PREC  isrf_habing(in,jn,kn)
 
 !  Cooling tables (coolings rates as a function of temperature)
 
@@ -377,8 +369,8 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
      &                  dmet1, dmet2, dmet3, dmet4, dmet5,
      &                  dmet6, dmet7, dmet8, dmet9, dmet10,
      &                  is, ie, js, je, ks, ke,
-     &                  in, jn, kn, ispecies, imetal, idustfield,
-     &                  iDustEvol, ifdust, aye**(-3))
+     &                  in, jn, kn, ispecies, imetal, iDustEvol,
+     &                  ifdust, aye**(-3))
 
       endif
 
@@ -490,7 +482,7 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
      &                d, e, u, v, w, de, HI, HII, HeI, HeII, HeIII,
      &                in, jn, kn, nratec, 
      &                iexpand, ispecies, imetal, imcool,
-     &                idust, idustall, idustfield,
+     &                idust, idustall, ifdust,
      &                idim, is, ie, j, k, ih2co, ipiht, iter, igammah,
      &                aye, temstart, temend, z_solar, fgr,
      &                utem, uxyz, uaye, urho, utim,
@@ -525,7 +517,7 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
      &                metPar1, metPar2, metPar3, metPar4, metPar5,
      &                metDataSize, metCooling, metHeating, clnew,
      &                iVheat, iMheat, Vheat, Mheat,
-     &                iisrffield, isrf_habing, itmask)
+     &                itmask)
 
             if (ispecies .gt. 0) then
 
@@ -926,7 +918,7 @@ c            WARNING_MESSAGE
      &                  dmet1, dmet2, dmet3, dmet4, dmet5,
      &                  dmet6, dmet7, dmet8, dmet9, dmet10,
      &                  is, ie, js, je, ks, ke,
-     &                  in, jn, kn, ispecies, imetal, idustfield, iDustEvol,
+     &                  in, jn, kn, ispecies, imetal, iDustEvol,
      &                  ifdust, aye**3)
 
       endif
@@ -956,7 +948,7 @@ c -----------------------------------------------------------
      &                        dmet1, dmet2, dmet3, dmet4, dmet5,
      &                        dmet6, dmet7, dmet8, dmet9, dmet10,
      &                        is, ie, js, je, ks, ke,
-     &                        in, jn, kn, ispecies, imetal, idustfield, iDustEvol,
+     &                        in, jn, kn, ispecies, imetal, iDustEvol,
      &                        ifdust, factor)
 c -------------------------------------------------------------------
 
@@ -966,7 +958,7 @@ c -------------------------------------------------------------------
 !     Arguments
 
       integer in, jn, kn, is, ie, js, je, ks, ke, ispecies, imetal,
-     &        iDustEvol, ifdust, idustfield
+     &        iDustEvol, ifdust
       R_PREC  de(in,jn,kn), sne(in,jn,kn), HI(in,jn,kn), HII(in,jn,kn),
      &        HeI(in,jn,kn), HeII(in,jn,kn), HeIII(in,jn,kn),
      &        HM(in,jn,kn),  H2I(in,jn,kn), H2II(in,jn,kn),
@@ -1070,7 +1062,7 @@ c -------------------------------------------------------------------
             enddo
          enddo
       endif
-      if ( (ifdust .eq. 1) .OR. (idustfield .eq. 1) ) then
+      if (ifdust .eq. 1) then
          do k = ks+1, ke+1
             do j = js+1, je+1
                do i = is+1, ie+1
