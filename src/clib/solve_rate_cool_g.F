@@ -174,7 +174,7 @@
      &        igammah, ih2optical, iciecool, ithreebody,
      &        ndratec, clnew, iVheat, iMheat, iH2shield, iradshield,
      &        iradtrans, iradcoupled, iradstep, irt_honly,
-     &        iisrffield, iDustEvol
+     &        iisrffield, ifdust, iDustEvol
 
       real*8  dx, dt, aye, temstart, temend, gamma,
      &        utim, uxyz, uaye, urho, utem, fh, dtoh, z_solar, 
@@ -977,7 +977,7 @@ c -------------------------------------------------------------------
      &        dmet1(in,jn,kn), dmet2(in,jn,kn), dmet3(in,jn,kn),
      &        dmet4(in,jn,kn), dmet5(in,jn,kn), dmet6(in,jn,kn),
      &        dmet7(in,jn,kn), dmet8(in,jn,kn), dmet9(in,jn,kn),
-     &        dmet10(in,jn,kn)
+     &        dmet10(in,jn,kn), sne(in,jn,kn)
       real*8 factor
 
 !     locals
