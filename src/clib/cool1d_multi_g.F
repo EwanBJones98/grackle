@@ -75,7 +75,7 @@
      &        idust, idustall, idustfield,
      &        imetal, igammah, ih2optical, iciecool, clnew,
      &        iVheat, iMheat, iradtrans, iradshield,
-     &        iisrffield
+     &        iisrffield, iDustEvol
 
       real*8  aye, temstart, temend, z_solar, fgr,
      &        utem, uxyz, uaye, urho, utim,
@@ -102,6 +102,9 @@
      &        compa, piHI, piHeI, piHeII, comp_xraya, comp_temp,
      &        gammaha, isrf, regra(nratec), gamma_isrfa,
      &        avgsighi, avgsighei, avgsigheii, k24, k26
+
+!  Dust growth and destruction fields
+      R_PREC  mt(in,jn,kn), md(in,jn,kn) 
 
 !  Cloudy cooling data
 

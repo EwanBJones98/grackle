@@ -27,6 +27,9 @@
 #define gr_float double
 #endif
 
+/* Dust evolution definitions */
+#define NUM_METAL_SPECIES 10
+
 typedef struct
 {
 
@@ -70,6 +73,11 @@ typedef struct
   gr_float *H2_self_shielding_length;
 
   gr_float *isrf_habing;
+  // densities of individual metal species in gas phase
+  gr_float *gas_metal_densities[NUM_METAL_SPECIES];
+  // densities of individual metal species in dust grains
+  gr_float *dust_metal_densities[NUM_METAL_SPECIES];
+  gr_float *SNe_ThisTimeStep;
 
 } grackle_field_data;
 

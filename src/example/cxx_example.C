@@ -23,6 +23,7 @@ extern "C" {
 
 #define mh     1.67262171e-24   
 #define kboltz 1.3806504e-16
+#define pc     3.0856776e+18
 
 int main(int argc, char *argv[])
 {
@@ -43,7 +44,7 @@ int main(int argc, char *argv[])
   code_units my_units;
   my_units.comoving_coordinates = 0; // 1 if cosmological sim, 0 if not
   my_units.density_units = 1.67e-24;
-  my_units.length_units = 1.0;
+  my_units.length_units = 128. * pc;
   my_units.time_units = 1.0e12;
   my_units.velocity_units = my_units.length_units / my_units.time_units;
   my_units.a_units = 1.0; // units for the expansion factor
@@ -68,6 +69,10 @@ int main(int argc, char *argv[])
   grackle_data->metal_cooling = 1;          // metal cooling on
   grackle_data->UVbackground = 1;           // UV background on
   grackle_data->grackle_data_file = "../../input/CloudyData_UVB=HM2012.h5"; // data file
+
+  grackle_data->use_dust_evol = 1;
+  // These two should be consistent.
+  grackle_data->SolarMetalFractionByMass = 0.0134;
 
   // Finally, initialize the chemistry object.
   if (initialize_chemistry_data(&my_units) == 0) {
@@ -118,6 +123,7 @@ int main(int argc, char *argv[])
   my_fields.HDI_density     = new gr_float[field_size];
   // for metal_cooling = 1
   my_fields.metal_density   = new gr_float[field_size];
+  my_fields.dust_density    = new gr_float[field_size];
 
   // volumetric heating rate (provide in units [erg s^-1 cm^-3])
   my_fields.volumetric_heating_rate = new gr_float[field_size];
@@ -134,15 +140,25 @@ int main(int argc, char *argv[])
 
   // interstellar radiation field strength
   my_fields.isrf_habing = new gr_float[field_size];
+  my_fields.SNe_ThisTimeStep = new gr_float[field_size];
+
+  for (int f = 0;f < 10;f++) {
+    my_fields.gas_metal_densities[f] = new gr_float[field_size];
+    my_fields.dust_metal_densities[f] = new gr_float[field_size];
+  }
 
   // set temperature units
   double temperature_units = mh * pow(my_units.a_units * 
                                       my_units.length_units /
                                       my_units.time_units, 2) / kboltz;
 
+  double dt = 3.15e7 * 1e6 / my_units.time_units;
+
+  double gas_metallicity = 1.0; // wrt solar
+
   int i;
   for (i = 0;i < field_size;i++) {
-    my_fields.density[i] = 1.0;
+    my_fields.density[i] = 1.67e-24 / my_units.density_units;
     my_fields.HI_density[i] = grackle_data->HydrogenFractionByMass *
       my_fields.density[i];
     my_fields.HII_density[i] = tiny_number * my_fields.density[i];
@@ -158,8 +174,10 @@ int main(int argc, char *argv[])
     my_fields.HDI_density[i] = tiny_number * my_fields.density[i];
     my_fields.e_density[i] = tiny_number * my_fields.density[i];
     // solar metallicity
-    my_fields.metal_density[i] = grackle_data->SolarMetalFractionByMass *
-      my_fields.density[i];
+    my_fields.metal_density[i] = gas_metallicity *
+      grackle_data->SolarMetalFractionByMass * my_fields.density[i];
+    my_fields.dust_density[i] = gas_metallicity *
+      grackle_data->local_dust_to_gas_ratio * my_fields.density[i];
 
     my_fields.x_velocity[i] = 0.0;
     my_fields.y_velocity[i] = 0.0;
@@ -178,7 +196,33 @@ int main(int argc, char *argv[])
     my_fields.RT_heating_rate[i] = 0.0;
 
     my_fields.isrf_habing[i] = grackle_data->interstellar_radiation_field;
+    // SFR = 1 Msun/yr
+    my_fields.SNe_ThisTimeStep[i] = 1.0 * 0.01067 * dt * my_units.time_units / pow(my_units.length_units, 3);
+
+    for (int f = 0;f < 10;f++) {
+      my_fields.gas_metal_densities[f][i] = my_fields.density[i] *
+        gas_metallicity * grackle_data->SolarAbundances[f];
+      my_fields.dust_metal_densities[f][i] = my_fields.gas_metal_densities[f][i] *
+        grackle_data->local_dust_to_gas_ratio / grackle_data->SolarMetalFractionByMass;
+    }
   }
+
+  fprintf(stderr, "BEFORE: %g, %g\n",
+          (my_fields.metal_density[0] / my_fields.density[0]),
+          (my_fields.dust_density[0]  / my_fields.density[0]));
+  fprintf(stderr, "BEFORE: %g, %g\n",
+          (my_fields.metal_density[0] / my_fields.density[0]),
+          (my_fields.dust_density[0]  / my_fields.density[0]));
+  gr_float gmtot, dmtot;
+  gmtot = dmtot = 0;
+  for (int f = 0;f < 10;f++) {
+    fprintf(stderr, "BEFORE: %g, %g\n",
+            (my_fields.gas_metal_densities[f][0] / my_fields.density[0]),
+            (my_fields.dust_metal_densities[f][0] / my_fields.density[0]));
+    gmtot += my_fields.gas_metal_densities[f][0];
+    dmtot += my_fields.dust_metal_densities[f][0];
+  }
+  fprintf(stderr, "BEFORE TOTALS: %g, %g, %g\n", gmtot, dmtot, (gmtot+dmtot));
 
   /*********************************************************************
   / Calling the chemistry solver
@@ -187,7 +231,6 @@ int main(int argc, char *argv[])
 
   // Evolving the chemistry.
   // some timestep
-  double dt = 3.15e7 * 1e6 / my_units.time_units;
 
   if (solve_chemistry(&my_units, &my_fields, dt) == 0) {
     fprintf(stderr, "Error in solve_chemistry.\n");
@@ -251,6 +294,22 @@ int main(int argc, char *argv[])
   }
 
   fprintf(stderr, "dust_temperature = %g K.\n", dust_temperature[0]);
+
+  fprintf(stderr, "AFTER: %g, %g\n",
+          (my_fields.metal_density[0] / my_fields.density[0]),
+          (my_fields.dust_density[0]  / my_fields.density[0]));
+  fprintf(stderr, "AFTER: %g, %g\n",
+          (my_fields.metal_density[0] / my_fields.density[0]),
+          (my_fields.dust_density[0]  / my_fields.density[0]));
+  gmtot = dmtot = 0;
+  for (int f = 0;f < 10;f++) {
+    fprintf(stderr, "AFTER: %g, %g\n",
+            (my_fields.gas_metal_densities[f][0] / my_fields.density[0]),
+            (my_fields.dust_metal_densities[f][0] / my_fields.density[0]));
+    gmtot += my_fields.gas_metal_densities[f][0];
+    dmtot += my_fields.dust_metal_densities[f][0];
+  }
+  fprintf(stderr, "AFTER TOTALS: %g, %g, %g\n", gmtot, dmtot, (gmtot+dmtot));
 
   _free_chemistry_data(my_grackle_data, &grackle_rates);
 

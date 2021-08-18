@@ -82,7 +82,17 @@ extern void FORTRAN_NAME(solve_rate_cool_g)(
  	long long *metDataSize, double *metCooling,
         double *metHeating, int *clnew,
         int *iVheat, int *iMheat, gr_float *Vheat, gr_float *Mheat,
-        int *iisrffield, gr_float* isrf_habing);
+        int *iisrffield, gr_float* isrf_habing,
+        int *iDustEvol, double *SolarAbd,
+        gr_float *met1, gr_float *met2, gr_float *met3,
+        gr_float *met4, gr_float *met5, gr_float *met6,
+        gr_float *met7, gr_float *met8, gr_float *met9,
+        gr_float *met10,
+        gr_float *dmet1, gr_float *dmet2, gr_float *dmet3,
+        gr_float *dmet4, gr_float *dmet5, gr_float *dmet6,
+        gr_float *dmet7, gr_float *dmet8, gr_float *dmet9,
+        gr_float *dmet10,
+        gr_float *sne);
 
 int local_solve_chemistry(chemistry_data *my_chemistry,
                           chemistry_data_storage *my_rates,
@@ -358,7 +368,30 @@ int local_solve_chemistry(chemistry_data *my_chemistry,
     my_fields->volumetric_heating_rate,
     my_fields->specific_heating_rate,
     &my_chemistry->use_isrf_field,
-    my_fields->isrf_habing);
+    my_fields->isrf_habing,
+    &my_chemistry->use_dust_evol,
+    my_chemistry->SolarAbundances,
+    my_fields->gas_metal_densities[0],
+    my_fields->gas_metal_densities[1],
+    my_fields->gas_metal_densities[2],
+    my_fields->gas_metal_densities[3],
+    my_fields->gas_metal_densities[4],
+    my_fields->gas_metal_densities[5],
+    my_fields->gas_metal_densities[6],
+    my_fields->gas_metal_densities[7],
+    my_fields->gas_metal_densities[8],
+    my_fields->gas_metal_densities[9],
+    my_fields->dust_metal_densities[0],
+    my_fields->dust_metal_densities[1],
+    my_fields->dust_metal_densities[2],
+    my_fields->dust_metal_densities[3],
+    my_fields->dust_metal_densities[4],
+    my_fields->dust_metal_densities[5],
+    my_fields->dust_metal_densities[6],
+    my_fields->dust_metal_densities[7],
+    my_fields->dust_metal_densities[8],
+    my_fields->dust_metal_densities[9],
+    my_fields->SNe_ThisTimeStep);
 
   return SUCCESS;
 
@@ -375,7 +408,7 @@ int _solve_chemistry(chemistry_data *my_chemistry,
                      gr_float *HeI_density, gr_float *HeII_density, gr_float *HeIII_density,
                      gr_float *H2I_density, gr_float *H2II_density,
                      gr_float *DI_density, gr_float *DII_density, gr_float *HDI_density,
-                     gr_float *e_density, gr_float *metal_density, gr_float *dust_density,
+                     gr_float *e_density, gr_float *metal_density,
                      gr_float *volumetric_heating_rate, gr_float *specific_heating_rate,
                      gr_float *RT_heating_rate, gr_float *RT_HI_ionization_rate, gr_float *RT_HeI_ionization_rate,
                      gr_float *RT_HeII_ionization_rate, gr_float *RT_H2_dissociation_rate,
@@ -406,7 +439,6 @@ int _solve_chemistry(chemistry_data *my_chemistry,
   my_fields.HDI_density              = HDI_density;
   my_fields.e_density                = e_density;
   my_fields.metal_density            = metal_density;
-  my_fields.dust_density             = dust_density;
   my_fields.volumetric_heating_rate  = volumetric_heating_rate;
   my_fields.specific_heating_rate    = specific_heating_rate;
   my_fields.RT_heating_rate          = RT_heating_rate;

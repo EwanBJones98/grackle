@@ -156,6 +156,9 @@ typedef struct
   int collisional_ionisation_rates; //Collisional ionisation
   int recombination_cooling_rates; //Recombination cooling
   int bremsstrahlung_cooling_rates; //Bremsstrahlung cooling
+  /* flag and parameters for Li+ 2019 dust growth and destruction */
+  int use_dust_evol;
+  double SolarAbundances[NUM_METAL_SPECIES];
 
   /* number of OpenMP threads, if supported */
 # ifdef _OPENMP

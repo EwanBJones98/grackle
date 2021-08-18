@@ -95,6 +95,7 @@
      &        gammaha, isrf, regra, gamma_isrfa,
      &        avgsighi, avgsighei, avgsigheii,
      &        k24, k26
+
 !  Cloudy cooling data
 
       integer icmbTfloor, iClHeat

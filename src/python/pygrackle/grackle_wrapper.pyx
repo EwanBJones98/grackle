@@ -303,6 +303,7 @@ cdef class chemistry_data:
         def __set__(self, val):
             self.data.LWbackground_intensity = val
 
+<<<<<<< HEAD
     property UVbackground_intensity:
         def __get__(self):
             return self.data.UVbackground_intensity
@@ -333,6 +334,32 @@ cdef class chemistry_data:
         def __set__(self, val):
             self.data.UVbackground_redshift_drop = val
 
+=======
+    property UVbackground_redshift_on:
+        def __get__(self):
+            return self.data. UVbackground_redshift_on
+        def __set__(self, val):
+            self.data. UVbackground_redshift_on = val
+
+    property UVbackground_redshift_off:
+        def __get__(self):
+            return self.data. UVbackground_redshift_off
+        def __set__(self, val):
+            self.data. UVbackground_redshift_off = val
+
+    property UVbackground_redshift_fullon:
+        def __get__(self):
+            return self.data. UVbackground_redshift_fullon
+        def __set__(self, val):
+            self.data. UVbackground_redshift_fullon = val
+
+    property UVbackground_redshift_drop:
+        def __get__(self):
+            return self.data. UVbackground_redshift_drop
+        def __set__(self, val):
+            self.data. UVbackground_redshift_drop = val
+
+>>>>>>> qigrain
     property cloudy_electron_fraction_factor:
         def __get__(self):
             return self.data.cloudy_electron_fraction_factor
@@ -375,6 +402,7 @@ cdef class chemistry_data:
         def __set__(self, val):
             self.data.H2_self_shielding = val
 
+<<<<<<< HEAD
     property k1:
         def __get__(self):
             cdef double[:] memview = <double[:self.NumberOfTemperatureBins]>(<double*> self.rates.k1)
@@ -494,6 +522,19 @@ cdef class chemistry_data:
         def __get__(self):
             cdef double[:] memview = <double[:self.NumberOfTemperatureBins*14]>(<double*> self.rates.k13dd)
             return np.asarray(memview)
+=======
+    property use_dust_evol:
+        def __get__(self):
+            return self.data.use_dust_evol
+        def __set__(self, val):
+            self.data.use_dust_evol = val
+
+    property SolarAbundances:
+        def __get__(self):
+            return self.data.SolarAbundances
+        def __set__(self, val):
+            self.data.SolarAbundances = val
+>>>>>>> qigrain
 
     property k24:
         def __get__(self):

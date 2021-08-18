@@ -1,4 +1,5 @@
 #include "phys_const.def"
+#include "dust_evol.def"
 
 !=======================================================================
 !///////////////////  SUBROUTINE SOLVE_RATE_COOL_G  \\\\\\\\\\\\\\\\\\\\\
@@ -44,7 +45,12 @@
      &                metPar1, metPar2, metPar3, metPar4, metPar5,
      &                metDataSize, metCooling, metHeating, clnew,
      &                iVheat, iMheat, Vheat, Mheat,
-     &                iisrffield, isrf_habing)
+     &                iisrffield, isrf_habing,
+     &                iDustEvol, SolarAbd,
+     &                met1, met2, met3, met4, met5, met6,
+     &                met7, met8, met9, met10,
+     &                dmet1, dmet2, dmet3, dmet4, dmet5, dmet6,
+     &                dmet7, dmet8, dmet9, dmet10, sne)
 
 !
 !  SOLVE MULTI-SPECIES RATE EQUATIONS AND RADIATIVE COOLING
@@ -139,6 +145,12 @@
 !    Vheat       - array of volumetric heating rates
 !    Mheat       - array of specific heating rates
 !
+!    iDustEvol   - flag for using dust growth and destruction
+!    SolarAbd    - solar element abundances
+!    met         - array GAS metallicity
+!    dmet        - array of DUST metallicity
+!    sne         - array of number DENSITY of super novaes per dt
+!
 !  OUTPUTS:
 !    update chemical rate densities (HI, HII, etc)
 !
@@ -162,11 +174,12 @@
      &        igammah, ih2optical, iciecool, ithreebody,
      &        ndratec, clnew, iVheat, iMheat, iH2shield, iradshield,
      &        iradtrans, iradcoupled, iradstep, irt_honly,
-     &        iisrffield
+     &        iisrffield, iDustEvol
 
       real*8  dx, dt, aye, temstart, temend, gamma,
      &        utim, uxyz, uaye, urho, utem, fh, dtoh, z_solar, 
-     &        fgr, dtemstart, dtemend, clEleFra
+     &        fgr, dtemstart, dtemend, clEleFra,
+     &        SolarAbd(NUM_METAL_SPECIES)
 
 !  Density, energy and velocity fields fields
 
@@ -191,6 +204,18 @@
 !  Interstellar radiation field for dust heating
 
       R_PREC  isrf_habing(in,jn,kn)
+! Dust growth and destruction fields
+      R_PREC  sne(in,jn,kn),
+     &        met1(in,jn,kn), met2(in,jn,kn), met3(in,jn,kn),
+     &        met4(in,jn,kn), met5(in,jn,kn), met6(in,jn,kn),
+     &        met7(in,jn,kn), met8(in,jn,kn), met9(in,jn,kn),
+     &        met10(in,jn,kn), met11(in,jn,kn),
+     &        dmet1(in,jn,kn), dmet2(in,jn,kn), dmet3(in,jn,kn),
+     &        dmet4(in,jn,kn), dmet5(in,jn,kn), dmet6(in,jn,kn),
+     &        dmet7(in,jn,kn), dmet8(in,jn,kn), dmet9(in,jn,kn),
+     &        dmet10(in,jn,kn), dmet11(in,jn,kn),
+     &        metpt(NUM_METAL_SPECIES+1),
+     &        dmetpt(NUM_METAL_SPECIES+1)
 
 !  Cooling tables (coolings rates as a function of temperature)
 
@@ -294,6 +319,10 @@
      &       k13dd(in, 14), h2dust(in),
      &       ncrn(in), ncrd1(in), ncrd2(in)
 
+!  Dust growth and destruction timescales
+
+      real*8 tau_accr(in), tau_dest(in), tau_sput(in)
+
 !  Cooling/heating row locals
 
       real*8 ceHI(in), ceHeI(in), ceHeII(in),
@@ -339,11 +368,15 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
 
       if (iexpand .eq. 1) then
 
-         call scale_fields_g(d, de, HI, HII, HeI, HeII, HeIII,
+         call scale_fields_g(d, de, sne, HI, HII, HeI, HeII, HeIII,
      &                  HM, H2I, H2II, DI, DII, HDI, metal, dust,
+     &                  met1, met2, met3, met4, met5,
+     &                  met6, met7, met8, met9, met10,
+     &                  dmet1, dmet2, dmet3, dmet4, dmet5,
+     &                  dmet6, dmet7, dmet8, dmet9, dmet10,
      &                  is, ie, js, je, ks, ke,
      &                  in, jn, kn, ispecies, imetal, idustfield,
-     &                  aye**(-3))
+     &                  iDustEvol, ifdust, aye**(-3))
 
       endif
 
@@ -575,11 +608,26 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
                endif
 
 !              compute minimum rate timestep
+               if (iDustEvol .eq. 1) then
+                   call dust_tau_for_timestep(in, jn, kn, i, j, k,
+     &                 d, tgas, metal,
+     &                 met1, met2, met3, met4, met5, met6,
+     &                 met7, met8, met9, met10, sne,
+     &                 tau_accr, tau_dest, tau_sput,
+     &                 z_solar, SolarAbd, utim, urho, uxyz, aye, dt)
+               else
+                   tau_accr(i) = huge8
+                   tau_dest(i) = huge8
+                   tau_sput(i) = huge8
+               endif
 
                olddtit = dtit(i)
-               dtit(i) = min(abs(0.1_DKIND*de(i,j,k)/dedot(i)), 
+               dtit(i) = min(abs(0.1_DKIND*de(i,j,k)/dedot(i)),
      &              abs(0.1_DKIND*HI(i,j,k)/HIdot(i)),
-     &              dt-ttot(i), 0.5_DKIND*dt)
+     &              dt-ttot(i), 0.5_DKIND*dt,
+     &              0.1_DKIND*tau_accr(i), 
+     &              0.1_DKIND*tau_dest(i), 
+     &              0.1_DKIND*tau_sput(i))
 
                if (d(i,j,k)*dom .gt. 1e8_DKIND .and. 
      &              edot(i) .gt. 0._DKIND) then
@@ -788,6 +836,25 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
 
             endif
 
+!           Dust growth and destruction 
+            
+            if (iDustEvol .eq. 1) then
+            do i = is+1, ie+1
+                if (itmask(i)) then
+                   call dust_growth_and_destruction(in,jn,kn,i,j,k,
+     &                  dust, metal, tgas,
+     &                  met1, met2, met3, met4, met5, met6,
+     &                  met7, met8, met9, met10,
+     &                  dmet1, dmet2, dmet3, dmet4, dmet5, dmet6,
+     &                  dmet7, dmet8, dmet9, dmet10,
+     &                  sne, tau_dest, tau_sput,
+     &                  z_solar, SolarAbd, utim, urho, uxyz, aye, dt,
+     &                  metpt, dmetpt)
+                endif
+            enddo
+            endif
+
+
 !           Add the timestep to the elapsed time for each cell and find
 !            minimum elapsed time step in this row
 
@@ -850,11 +917,15 @@ c            WARNING_MESSAGE
 
       if (iexpand .eq. 1) then
 
-         call scale_fields_g(d, de, HI, HII, HeI, HeII, HeIII,
+         call scale_fields_g(d, de, sne, HI, HII, HeI, HeII, HeIII,
      &                  HM, H2I, H2II, DI, DII, HDI, metal, dust,
+     &                  met1, met2, met3, met4, met5,
+     &                  met6, met7, met8, met9, met10,
+     &                  dmet1, dmet2, dmet3, dmet4, dmet5,
+     &                  dmet6, dmet7, dmet8, dmet9, dmet10,
      &                  is, ie, js, je, ks, ke,
      &                  in, jn, kn, ispecies, imetal, idustfield,
-     &                  aye**3)
+     &                  iDustEvol, ifdust, aye**3)
 
       endif
 
@@ -876,11 +947,15 @@ c -----------------------------------------------------------
 !   This routine scales the density fields from comoving to
 !     proper densities (and back again).
 
-      subroutine scale_fields_g(d, de, HI, HII, HeI, HeII, HeIII,
+      subroutine scale_fields_g(d, de, sne, HI, HII, HeI, HeII, HeIII,
      &                        HM, H2I, H2II, DI, DII, HDI, metal, dust,
+     &                        met1, met2, met3, met4, met5,
+     &                        met6, met7, met8, met9, met10,
+     &                        dmet1, dmet2, dmet3, dmet4, dmet5,
+     &                        dmet6, dmet7, dmet8, dmet9, dmet10,
      &                        is, ie, js, je, ks, ke,
      &                        in, jn, kn, ispecies, imetal, idustfield,
-     &                        factor)
+     &                        iDustEvol, ifdust, factor)
 c -------------------------------------------------------------------
 
       implicit NONE
@@ -889,12 +964,20 @@ c -------------------------------------------------------------------
 !     Arguments
 
       integer in, jn, kn, is, ie, js, je, ks, ke, ispecies, imetal,
-     &        idustfield
+     &        idustfield, iDustEvol, ifdust
       R_PREC  de(in,jn,kn),   HI(in,jn,kn),   HII(in,jn,kn),
      &        HeI(in,jn,kn), HeII(in,jn,kn), HeIII(in,jn,kn),
      &        HM(in,jn,kn),  H2I(in,jn,kn), H2II(in,jn,kn),
      &        DI(in,jn,kn),  DII(in,jn,kn), HDI(in,jn,kn),
-     &        d(in,jn,kn),   metal(in,jn,kn), dust(in,jn,kn)
+     &        d(in,jn,kn),   metal(in,jn,kn), dust(in,jn,kn),
+     &        met1(in,jn,kn), met2(in,jn,kn), met3(in,jn,kn),
+     &        met4(in,jn,kn), met5(in,jn,kn), met6(in,jn,kn),
+     &        met7(in,jn,kn), met8(in,jn,kn), met9(in,jn,kn),
+     &        met10(in,jn,kn),
+     &        dmet1(in,jn,kn), dmet2(in,jn,kn), dmet3(in,jn,kn),
+     &        dmet4(in,jn,kn), dmet5(in,jn,kn), dmet6(in,jn,kn),
+     &        dmet7(in,jn,kn), dmet8(in,jn,kn), dmet9(in,jn,kn),
+     &        dmet10(in,jn,kn)
       real*8 factor
 
 !     locals
@@ -956,7 +1039,36 @@ c -------------------------------------------------------------------
             enddo
          enddo
       endif
-      if (idustfield .eq. 1) then
+         if (iDustEvol .eq. 1) then
+            do k = ks+1, ke+1
+               do j = js+1, je+1
+                  do i = is+1, ie+1
+                     sne(i,j,k)    = sne(i,j,k)*factor
+                     met1(i,j,k)   = met1(i,j,k)*factor
+                     met2(i,j,k)   = met2(i,j,k)*factor
+                     met3(i,j,k)   = met3(i,j,k)*factor
+                     met4(i,j,k)   = met4(i,j,k)*factor
+                     met5(i,j,k)   = met5(i,j,k)*factor
+                     met6(i,j,k)   = met6(i,j,k)*factor
+                     met7(i,j,k)   = met7(i,j,k)*factor
+                     met8(i,j,k)   = met8(i,j,k)*factor
+                     met9(i,j,k)   = met9(i,j,k)*factor
+                     met10(i,j,k)  = met10(i,j,k)*factor
+                     dmet1(i,j,k)  = dmet1(i,j,k)*factor
+                     dmet2(i,j,k)  = dmet2(i,j,k)*factor
+                     dmet3(i,j,k)  = dmet3(i,j,k)*factor
+                     dmet4(i,j,k)  = dmet4(i,j,k)*factor
+                     dmet5(i,j,k)  = dmet5(i,j,k)*factor
+                     dmet6(i,j,k)  = dmet6(i,j,k)*factor
+                     dmet7(i,j,k)  = dmet7(i,j,k)*factor
+                     dmet8(i,j,k)  = dmet8(i,j,k)*factor
+                     dmet9(i,j,k)  = dmet9(i,j,k)*factor
+                     dmet10(i,j,k) = dmet10(i,j,k)*factor
+                  enddo
+               enddo
+            enddo
+         endif
+      if ( (ifdust .eq. 1) .OR. (idustfield .eq. 1) ) then
          do k = ks+1, ke+1
             do j = js+1, je+1
                do i = is+1, ie+1
