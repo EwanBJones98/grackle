@@ -179,7 +179,7 @@
       real*8  dx, dt, aye, temstart, temend, gamma,
      &        utim, uxyz, uaye, urho, utem, fh, dtoh, z_solar, 
      &        fgr, dtemstart, dtemend, clEleFra,
-     &        SolarAbd(NUM_METAL_SPECIES)
+     &        SolarAbd(NUM_METAL_SPECIES_GRACKLE)
 
 !  Density, energy and velocity fields fields
 
@@ -214,8 +214,8 @@
      &        dmet4(in,jn,kn), dmet5(in,jn,kn), dmet6(in,jn,kn),
      &        dmet7(in,jn,kn), dmet8(in,jn,kn), dmet9(in,jn,kn),
      &        dmet10(in,jn,kn), dmet11(in,jn,kn),
-     &        metpt(NUM_METAL_SPECIES+1),
-     &        dmetpt(NUM_METAL_SPECIES+1)
+     &        metpt(NUM_METAL_SPECIES_GRACKLE+1),
+     &        dmetpt(NUM_METAL_SPECIES_GRACKLE+1)
 
 !  Cooling tables (coolings rates as a function of temperature)
 

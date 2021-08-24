@@ -158,7 +158,7 @@ typedef struct
   int bremsstrahlung_cooling_rates; //Bremsstrahlung cooling
   /* flag and parameters for Li+ 2019 dust growth and destruction */
   int use_dust_evol;
-  double SolarAbundances[NUM_METAL_SPECIES];
+  double SolarAbundances[NUM_METAL_SPECIES_GRACKLE];
 
   /* number of OpenMP threads, if supported */
 # ifdef _OPENMP

@@ -346,7 +346,7 @@ void show_parameters(FILE *fp, chemistry_data *my_chemistry)
   fprintf(fp, "use_dust_evol                     = %d\n",
 		  my_chemistry->use_dust_evol);
   int f;
-  for (f = 0; f < NUM_METAL_SPECIES; f++) {
+  for (f = 0; f < NUM_METAL_SPECIES_GRACKLE; f++) {
     fprintf(fp, "SolarAbundances[%d]                = %g\n",
             f, my_chemistry->SolarAbundances[f]);
   }

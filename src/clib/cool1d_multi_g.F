@@ -75,7 +75,7 @@
      &        idust, idustall, idustfield,
      &        imetal, igammah, ih2optical, iciecool, clnew,
      &        iVheat, iMheat, iradtrans, iradshield,
-     &        iisrffield, iDustEvol
+     &        iisrffield
 
       real*8  aye, temstart, temend, z_solar, fgr,
      &        utem, uxyz, uaye, urho, utim,
@@ -102,9 +102,6 @@
      &        compa, piHI, piHeI, piHeII, comp_xraya, comp_temp,
      &        gammaha, isrf, regra(nratec), gamma_isrfa,
      &        avgsighi, avgsighei, avgsigheii, k24, k26
-
-!  Dust growth and destruction fields
-      R_PREC  mt(in,jn,kn), md(in,jn,kn) 
 
 !  Cloudy cooling data
 
@@ -140,6 +137,7 @@
      &       coolunit, dbase1, tbase1, xbase1,
      &       nH2, nother, nSSh, nratio, nssh_he, nratio_he,
      &       fSShHI, fSShHeI, pe_eps, pe_X, grbeta
+      character(80) :: userinp   
 
 !  Slice locals
  
@@ -754,6 +752,13 @@ c  new (correct) way: (april 4, 2007)
 
       endif
 
+      do i = is + 1, ie + 1
+         if (edot(i) .ne. edot(i)) then
+            write(*,*) "edot NaN after gas-grain heat transfer -- line 747. Enter any letter to continue.", edot(i)
+            read(*,*) userinp
+         endif
+      enddo
+
 !     --- Compute (external) radiative heating terms ---
 !     Photoionization heating
 
@@ -928,6 +933,13 @@ c  new (correct) way: (april 4, 2007)
      &        priPar1, priPar2, priPar3,
      &        priDataSize, priCooling, priHeating,
      &        itmask)
+         
+         do i = is + 1, ie + 1
+            if (edot(i) .ne. edot(i)) then
+               write(*,*) "edot NaN after cool1D_cloudy_g -- line 921. Enter any letter to continue.", edot(i)
+               read(*,*) userinp
+            endif
+         enddo
 
 !     Calculate electron density from mean molecular weight
 
@@ -1082,6 +1094,13 @@ c  new (correct) way: (april 4, 2007)
      &           metDataSize, metCooling, metHeating,
      &           itmask)
 
+            do i = is + 1, ie + 1
+               if (edot(i) .ne. edot(i)) then
+                  write(*,*) "edot NaN after cool1D_cloudy_g -- line 1074. Enter any letter to continue.", edot(i)
+                  read(*,*) userinp
+               endif
+            enddo
+
          else
 
             call cool1D_cloudy_old_tables_g(
@@ -1093,6 +1112,13 @@ c  new (correct) way: (april 4, 2007)
      &           metPar1, metPar2, metPar3, metPar4, metPar5,
      &           metDataSize, metCooling, metHeating, 
      &           itmask)
+
+            do i = is + 1, ie + 1
+               if (edot(i) .ne. edot(i)) then
+                  write(*,*) "edot NaN after cool1D_cloudy_old_tables_g -- line 1085. Enter any letter to continue.", edot(i)
+                  read(*,*) userinp
+               endif
+            enddo
 
          endif
 
@@ -1127,6 +1153,13 @@ c  new (correct) way: (april 4, 2007)
          if ( itmask(i) ) then
          tgasold(i) = tgas(i)
          end if
+      enddo
+
+      do i = is + 1, ie + 1
+         if (edot(i) .ne. edot(i)) then
+            write(*,*) "edot NaN at end of cool1d_multi_g. Enter any letter to continue.", edot(i)
+            !read(*,*) userinp
+         endif
       enddo
 
       return
