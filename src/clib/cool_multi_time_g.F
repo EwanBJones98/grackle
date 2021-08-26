@@ -115,7 +115,7 @@
 !  Parameters
 
 !  Locals
-
+      character(80) :: userinp
       integer i, j, k
       integer t, dj, dk
       real*8 comp1, comp2, energy
@@ -174,6 +174,14 @@
       do t = 0, dk*dj-1
         k = t/dj      + ks+1
         j = mod(t,dj) + js+1
+
+            do i = is+1, ie+1
+               if (metal(i,j,k) .ne. metal(i,j,k)) then
+                  write(*,*) "metal NaN at start of cool_multi_time. Enter any letter to continue.",
+     &                       metal(i,j,k)
+                  read(*,*) userinp
+               endif
+            enddo
 
             do i = is+1, ie+1
                d(i,j,k)     = d(i,j,k)/real(aye**3, RKIND)

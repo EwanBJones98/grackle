@@ -85,6 +85,7 @@
       integer*8 zindex, zmidpt, zhighpt
       real*8 dclPar(clGridRank), inv_log10, log10_tCMB
       logical end_int
+      character(80) :: userinp
 
 !  Slice locals
 
@@ -160,6 +161,11 @@
      &              dclPar(1), clDataSize, clCooling, log_cool(i))
                edot_met(i) = -10._DKIND**log_cool(i)
 
+               if (edot_met(i) .ne. edot_met(i)) then
+                  write(*,*) "edot_met NaN at end of line 162 in cool1d_cloudy. Enter any letter to continue.", edot_met(i)
+                  read(*,*) userinp
+               endif
+
 !     Ignore CMB term if T >> T_CMB
                if ((icmbTfloor .eq. 1) .and. 
      &              ((log10tem(i) - log10_tCMB) .lt. 2._DKIND)) then
@@ -176,12 +182,22 @@
                   edot_met(i) = edot_met(i) + 10._DKIND**log_heat(i)
                endif
 
+               if (edot_met(i) .ne. edot_met(i)) then
+                  write(*,*) "edot_met NaN at end of line 182 in cool1d_cloudy. Enter any letter to continue.", edot_met(i)
+                  read(*,*) userinp
+               endif
+
 !           Interpolate over density and temperature.
             else if (clGridRank .eq. 2) then
                call interpolate_2D_g(log_n_h(i), log10tem(i), clGridDim,
      &              clPar1, dclPar(1), clPar2, dclPar(2),
      &              clDataSize, clCooling, log_cool(i))
                edot_met(i) = -10._DKIND**log_cool(i)
+
+               if (edot_met(i) .ne. edot_met(i)) then
+                  write(*,*) "edot_met NaN at end of line 195 in cool1d_cloudy. Enter any letter to continue.", edot_met(i)
+                  read(*,*) userinp
+               endif
 
 !     Ignore CMB term if T >> T_CMB
                if ((icmbTfloor .eq. 1) .and. 
@@ -199,6 +215,11 @@
                   edot_met(i) = edot_met(i) + 10._DKIND**log_heat(i)
                endif
 
+               if (edot_met(i) .ne. edot_met(i)) then
+                  write(*,*) "edot_met NaN at end of line 215 in cool1d_cloudy. Enter any letter to continue.", edot_met(i)
+                  read(*,*) userinp
+               endif
+
 !           Interpolate over density, redshift, and temperature.
             else if (clGridRank .eq. 3) then
                call interpolate_3Dz_g(log_n_h(i), zr, log10tem(i),
@@ -209,6 +230,11 @@
      &              clDataSize, clCooling, 
      &              end_int, log_cool(i))
                edot_met(i) = -10._DKIND**log_cool(i)
+
+               if (edot_met(i) .ne. edot_met(i)) then
+                  write(*,*) "edot_met NaN at end of line 232 in cool1d_cloudy. Enter any letter to continue.", edot_met(i)
+                  read(*,*) userinp
+               endif
 
 !     Ignore CMB term if T >> T_CMB
                if ((icmbTfloor .eq. 1) .and. 
@@ -221,6 +247,12 @@
      &                 clDataSize, clCooling, 
      &                 end_int, log_cool_cmb(i))
                   edot_met(i) = edot_met(i) + 10._DKIND**log_cool_cmb(i)
+
+                  if (edot_met(i) .ne. edot_met(i)) then
+                     write(*,*) "edot_met NaN at end of line 249 in cool1d_cloudy. Enter any letter to continue.", edot_met(i)
+                     read(*,*) userinp
+                  endif
+
                endif
 
                if (get_heat .eq. 1) then
@@ -232,6 +264,12 @@
      &                 clDataSize, clHeating, 
      &                 end_int, log_heat(i))
                   edot_met(i) = edot_met(i) + 10._DKIND**log_heat(i)
+
+                  if (edot_met(i) .ne. edot_met(i)) then
+                     write(*,*) "edot_met NaN at end of line 266 in cool1d_cloudy. Enter any letter to continue.", edot_met(i)
+                     read(*,*) userinp
+                  endif
+
                endif
 
             else
@@ -247,14 +285,35 @@
 
 !           Scale cooling by metallicity.
 
+            if (metallicity(i) .ne. metallicity(i)) then
+               write(*,*) "metallicity NaN before line 294 in cool1d_cloudy. Enter any letter to continue.", metallicity(i)
+               read(*,*) userinp
+            endif
+
             if (iZscale .eq. 1) then
                edot_met(i) = edot_met(i) * metallicity(i)
+
+               if (edot_met(i) .ne. edot_met(i)) then
+                  write(*,*) "edot_met NaN at end of line 289 in cool1d_cloudy. Enter any letter to continue.", edot_met(i)
+                  read(*,*) userinp
+               endif
+
             endif
 
             edot(i) = edot(i) + 
      &           (edot_met(i) * rhoH(i) * rhoH(i))
 
+            if (edot(i) .ne. edot(i)) then
+               write(*,*) "edot NaN after line 254 in cool1d_cloudy. Enter any letter to continue.", edot(i)
+               read(*,*) userinp
+            endif
+
          end if
+
+         if (edot(i) .ne. edot(i)) then
+            write(*,*) "edot NaN at end of cool1d_cloudy. Enter any letter to continue.", edot(i)
+            read(*,*) userinp
+         endif
       enddo
 
       return

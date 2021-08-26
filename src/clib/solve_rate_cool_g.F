@@ -283,7 +283,7 @@
       parameter (mh = mass_h, pi = pi_val)
 
 !  Locals
-
+      character(80) :: userinp
       integer i, j, k, iter
       integer t, dj, dk
       real*8 ttmin, dom, energy, comp1, comp2
@@ -430,6 +430,14 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
         k = t/dj      + ks+1
         j = mod(t,dj) + js+1
 
+         do i = is+1, ie+1
+            if (metal(i,j,k) .ne. metal(i,j,k)) then
+               write(*,*) "metal NaN at start of solve_rate_cool. Enter any letter to continue.",
+     &                     metal(i,j,k)
+               read(*,*) userinp
+            endif
+         enddo
+
 !       tolerance = 1.0e-06_DKIND * dt
 
 !     Initialize iteration mask to true for all cells.
@@ -479,6 +487,15 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
             do i = is+1, ie+1
                if (itmask(i)) then
                   dtit(i) = huge8
+               endif
+            enddo
+
+            do i = is+1, ie+1
+               if (metal(i,j,k) .ne. metal(i,j,k)) then
+                  write(*,*) "metal NaN at iteration", iter, "in loop over subcyles within ",
+     &                       "solve_rate_cool (line 503). Enter any letter to continue.",
+     &                       metal(i,j,k)
+                  read(*,*) userinp
                endif
             enddo
 
@@ -609,12 +626,20 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
 
 !              compute minimum rate timestep
                if (iDustEvol .eq. 1) then
-                   call dust_tau_for_timestep(in, jn, kn, i, j, k,
+                  call dust_tau_for_timestep(in, jn, kn, i, j, k,
      &                 d, tgas, metal,
      &                 met1, met2, met3, met4, met5, met6,
      &                 met7, met8, met9, met10, sne,
      &                 tau_accr, tau_dest, tau_sput,
      &                 z_solar, SolarAbd, utim, urho, uxyz, aye, dt)
+
+                   
+                  if (metal(i,j,k) .ne. metal(i,j,k)) then
+                     write(*,*) "metal NaN after dust_tau_for_timestep at line 629 ",
+     &                  "in solve_rate_cool. Enter any letter to continue.", metal(i,j,k)
+                     read(*,*) userinp
+                  endif
+                   
                else
                    tau_accr(i) = huge8
                    tau_dest(i) = huge8
@@ -850,6 +875,13 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
      &                  sne, tau_dest, tau_sput,
      &                  z_solar, SolarAbd, utim, urho, uxyz, aye, dt,
      &                  metpt, dmetpt)
+
+                      if (metal(i,j,k) .ne. metal(i,j,k)) then
+                         write(*,*) "metal NaN after dust_growth_and_destruction on line 869 in",
+     &                              "solve_rate_cool. Enter any letter to continue.", metal(i,j,k)
+                         read(*,*) userinp
+                      endif
+                   
                 endif
             enddo
             endif
@@ -983,6 +1015,7 @@ c -------------------------------------------------------------------
 !     locals
 
       integer i, j, k
+      character(80) :: userinp
 
 !     Multiply all fields by factor (1/a^3 or a^3)
 
@@ -1034,7 +1067,21 @@ c -------------------------------------------------------------------
          do k = ks+1, ke+1
             do j = js+1, je+1
                do i = is+1, ie+1
+
+                  if (metal(i,j,k) .ne. metal(i,j,k)) then
+                     write(*,*) "metal NaN at start of scale_fields_g. Enter any letter to continue.",
+     &                          metal(i,j,k)
+                     read(*,*) userinp
+                  endif
+
                   metal(i,j,k) = metal(i,j,k)*factor
+
+                  if (metal(i,j,k) .ne. metal(i,j,k)) then
+                     write(*,*) "metal NaN at end of scale_fields_g. Enter any letter to continue.",
+     &                          metal(i,j,k)
+                     read(*,*) userinp
+                  endif
+
                enddo
             enddo
          enddo
@@ -1106,6 +1153,7 @@ c -------------------------------------------------------------------
 !     locals
 
       integer i, j, k
+      character(80) :: userinp
 
       if (ispecies .gt. 0) then
          do k = ks+1, ke+1
@@ -1147,8 +1195,22 @@ c -------------------------------------------------------------------
          do k = ks+1, ke+1
             do j = js+1, je+1
                do i = is+1, ie+1
+
+                  if (metal(i,j,k) .ne. metal(i,j,k)) then
+                     write(*,*) "metal NaN at start of ceiling_species_g. Enter any letter to continue.",
+     &                          metal(i,j,k)
+                     read(*,*) userinp
+                  endif
+
                   metal(i,j,k) = min(max(metal(i,j,k), tiny),
      &                 0.9_RKIND*d(i,j,k))
+
+                  if (metal(i,j,k) .ne. metal(i,j,k)) then
+                     write(*,*) "metal NaN at end of ceiling_species_g. Enter any letter to continue.",
+     &                          metal(i,j,k)
+                     read(*,*) userinp
+                  endif
+
                enddo
             enddo
          enddo

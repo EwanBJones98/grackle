@@ -192,6 +192,14 @@
       fudge    = 1._DKIND
       iradfield = -1
 
+      do i = is+1, ie+1
+         if (metal(i,j,k) .ne. metal(i,j,k)) then
+            write(*,*) "metal NaN at start of cool1d_multi. Enter any letter to continue.",
+     &              metal(i,j,k)
+            read(*,*) userinp
+         endif
+      enddo
+
 !     Set compton cooling coefficients (and temperature)
 
       comp1 = compa  * (1._DKIND + zr)**4
@@ -245,6 +253,14 @@
      &        priPar1, priPar2, priPar3,
      &        priDataSize, priMMW,
      &        itmask)
+
+         do i = is+1, ie+1
+            if (metal(i,j,k) .ne. metal(i,j,k)) then
+               write(*,*) "metal NaN after calc_temp1d_cloudy line 247 cool1d_multi. Enter any letter to continue.",
+     &              metal(i,j,k)
+               read(*,*) userinp
+            endif
+         enddo
 
       else
 
@@ -320,7 +336,6 @@
       endif
 
 !     Calculate metallicity and H number density
-
       if (imetal .eq. 1) then
          do i = is+1, ie+1
             if ( itmask(i) ) then
@@ -934,9 +949,10 @@ c  new (correct) way: (april 4, 2007)
      &        priDataSize, priCooling, priHeating,
      &        itmask)
          
-         do i = is + 1, ie + 1
-            if (edot(i) .ne. edot(i)) then
-               write(*,*) "edot NaN after cool1D_cloudy_g -- line 921. Enter any letter to continue.", edot(i)
+         do i = is+1, ie+1
+            if (metal(i,j,k) .ne. metal(i,j,k)) then
+               write(*,*) "metal NaN after cool1d_cloudy on line 943 cool1d_multi. Enter any letter to continue.",
+     &              metal(i,j,k)
                read(*,*) userinp
             endif
          enddo
@@ -1094,9 +1110,10 @@ c  new (correct) way: (april 4, 2007)
      &           metDataSize, metCooling, metHeating,
      &           itmask)
 
-            do i = is + 1, ie + 1
-               if (edot(i) .ne. edot(i)) then
-                  write(*,*) "edot NaN after cool1D_cloudy_g -- line 1074. Enter any letter to continue.", edot(i)
+            do i = is+1, ie+1
+               if (metal(i,j,k) .ne. metal(i,j,k)) then
+                  write(*,*) "metal NaN after cool1d_cloudy on line 1104 cool1d_multi. Enter any letter to continue.",
+     &                        metal(i,j,k)
                   read(*,*) userinp
                endif
             enddo
@@ -1113,12 +1130,6 @@ c  new (correct) way: (april 4, 2007)
      &           metDataSize, metCooling, metHeating, 
      &           itmask)
 
-            do i = is + 1, ie + 1
-               if (edot(i) .ne. edot(i)) then
-                  write(*,*) "edot NaN after cool1D_cloudy_old_tables_g -- line 1085. Enter any letter to continue.", edot(i)
-                  read(*,*) userinp
-               endif
-            enddo
 
          endif
 
@@ -1155,10 +1166,11 @@ c  new (correct) way: (april 4, 2007)
          end if
       enddo
 
-      do i = is + 1, ie + 1
-         if (edot(i) .ne. edot(i)) then
-            write(*,*) "edot NaN at end of cool1d_multi_g. Enter any letter to continue.", edot(i)
-            !read(*,*) userinp
+      do i = is+1, ie+1
+         if (metal(i,j,k) .ne. metal(i,j,k)) then
+            write(*,*) "metal NaN at end of cool1d_multi. Enter any letter to continue.",
+     &              metal(i,j,k)
+            read(*,*) userinp
          endif
       enddo
 
