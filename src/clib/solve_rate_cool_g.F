@@ -147,8 +147,8 @@
 !
 !    iDustEvol   - flag for using dust growth and destruction
 !    SolarAbd    - solar element abundances
-!    met         - array GAS metallicity
-!    dmet        - array of DUST metallicity
+!    met         - densities of individual metal species in gas phase
+!    dmet        - densities of individual metal species in dust grains
 !    sne         - array of number DENSITY of super novaes per dt
 !
 !  OUTPUTS:
