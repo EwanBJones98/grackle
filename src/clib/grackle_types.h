@@ -73,9 +73,7 @@ typedef struct
   gr_float *H2_self_shielding_length;
 
   gr_float *isrf_habing;
-  //! ----- Comment Added by Ewan ------ 
-  //! I think that the below are actually supposed to be metallicities, 
-  //! that is what they are said to be in the solve_rate_cool definition.
+  
   // densities of individual metal species in gas phase
   gr_float *gas_metal_densities[NUM_METAL_SPECIES_GRACKLE];
   // densities of individual metal species in dust grains

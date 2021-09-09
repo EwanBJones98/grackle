@@ -137,7 +137,8 @@
      &       coolunit, dbase1, tbase1, xbase1,
      &       nH2, nother, nSSh, nratio, nssh_he, nratio_he,
      &       fSShHI, fSShHeI, pe_eps, pe_X, grbeta
-      character(80) :: userinp   
+      character(80) :: userinp 
+      integer nan_flag
 
 !  Slice locals
  
@@ -743,10 +744,24 @@ c  new (correct) way: (april 4, 2007)
 !     Look up gas/grain heat transfer rates
 
          do i = is+1, ie+1
+            if (gasgr(i) .ne. gasgr(i)) then 
+               write(*,*) "gasgr NaN before gas-grain calculation -- line 755.", gasgr(i)
+               read(*,*) userinp
+            endif
+         enddo
+
+         do i = is+1, ie+1
             if ( itmask(i) ) then
                gasgr(i) = gasgra(indixe(i)) + tdef(i)
      &              *(gasgra(indixe(i)+1) -gasgra(indixe(i)))
                gasgr_tdust(i) = fgr * gasgr(i) * coolunit / mh
+            endif
+         enddo
+
+         do i = is+1, ie+1
+            if (gasgr(i) .ne. gasgr(i)) then 
+               write(*,*) "gasgr NaN after gas-grain calculation -- line 755.", gasgr(i)
+               read(*,*) userinp
             endif
          enddo
 
@@ -757,6 +772,20 @@ c  new (correct) way: (april 4, 2007)
 
 !     Calculate cooling rate
 
+         do i = is + 1, ie + 1
+            if (edot(i) .ne. edot(i)) then
+               write(*,*) "edot NaN before calculate cooling rate -- line 768. Enter any letter to continue.", edot(i)
+               read(*,*) userinp
+            endif
+         enddo
+
+         do i = is+1, ie+1
+            if (gasgr(i) .ne. gasgr(i)) then 
+               write(*,*) "gasgr NaN before calculate cooling rate -- line 768. Enter any letter to continue.", gasgr(i)
+               read(*,*) userinp
+            endif
+         enddo
+
          do i = is+1, ie+1
             if ( itmask(i) ) then
                edot(i) = edot(i) - 
@@ -765,14 +794,43 @@ c  new (correct) way: (april 4, 2007)
             endif
          enddo
 
+         nan_flag = 0
+         do i = is + 1, ie + 1
+            if (edot(i) .ne. edot(i)) then
+               write(*,*) "edot NaN after gas-grain heat transfer -- line 747.", edot(i)
+               nan_flag = 1
+            endif
+            if (gasgr(i) .ne. gasgr(i)) then 
+               write(*,*) "gasgr NaN after gas-grain heat transfer -- line 747.", gasgr(i)
+               nan_flag = 1
+            endif
+            if (tgas(i) .ne. tgas(i)) then 
+               write(*,*) "tgas NaN after gas-grain heat transfer -- line 747.", tgas(i)
+               nan_flag = 1
+            endif
+            if (tdust(i) .ne. tdust(i)) then 
+               write(*,*) "tdust NaN after gas-grain heat transfer -- line 747.", tdust(i)
+               nan_flag = 1
+            endif
+            if (dust2gas(i) .ne. dust2gas(i)) then 
+               write(*,*) "dust2gas NaN after gas-grain heat transfer -- line 747.", dust2gas(i)
+               nan_flag = 1
+            endif
+            if (rhoH(i) .ne. rhoH(i)) then 
+               write(*,*) "rhoH NaN after gas-grain heat transfer -- line 747.", rhoH(i)
+               nan_flag = 1
+            endif
+         enddo
+
+         if (nan_flag .eq. 1) then 
+            write(*,*) "Enter any letter to continue."
+            read(*,*) userinp
+            nan_flag = 0
+         endif
+
       endif
 
-      do i = is + 1, ie + 1
-         if (edot(i) .ne. edot(i)) then
-            write(*,*) "edot NaN after gas-grain heat transfer -- line 747. Enter any letter to continue.", edot(i)
-            read(*,*) userinp
-         endif
-      enddo
+      
 
 !     --- Compute (external) radiative heating terms ---
 !     Photoionization heating
