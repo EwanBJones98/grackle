@@ -75,10 +75,29 @@ typedef struct
   gr_float *isrf_habing;
   
   // densities of individual metal species in gas phase
-  gr_float *gas_metal_densities[NUM_METAL_SPECIES_GRACKLE];
+  gr_float *He_gas_metalDensity;
+  gr_float *C_gas_metalDensity;
+  gr_float *N_gas_metalDensity;
+  gr_float *O_gas_metalDensity;
+  gr_float *Ne_gas_metalDensity;
+  gr_float *Mg_gas_metalDensity;
+  gr_float *Si_gas_metalDensity;
+  gr_float *S_gas_metalDensity;
+  gr_float *Ca_gas_metalDensity;
+  gr_float *Fe_gas_metalDensity;
+
   // densities of individual metal species in dust grains
-  gr_float *dust_metal_densities[NUM_METAL_SPECIES_GRACKLE];
-  //! ----------------------------------
+  gr_float *He_dust_metalDensity;
+  gr_float *C_dust_metalDensity;
+  gr_float *N_dust_metalDensity;
+  gr_float *O_dust_metalDensity;
+  gr_float *Ne_dust_metalDensity;
+  gr_float *Mg_dust_metalDensity;
+  gr_float *Si_dust_metalDensity;
+  gr_float *S_dust_metalDensity;
+  gr_float *Ca_dust_metalDensity;
+  gr_float *Fe_dust_metalDensity;
+  
   gr_float *SNe_ThisTimeStep;
 
 } grackle_field_data;

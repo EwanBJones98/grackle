@@ -142,10 +142,55 @@ int main(int argc, char *argv[])
   my_fields.isrf_habing = new gr_float[field_size];
   my_fields.SNe_ThisTimeStep = new gr_float[field_size];
 
-  for (int f = 0;f < 10;f++) {
-    my_fields.gas_metal_densities[f] = new gr_float[field_size];
-    my_fields.dust_metal_densities[f] = new gr_float[field_size];
-  }
+  // metal densities in gas phase
+  my_fields.He_gas_metalDensity = new gr_float[field_size];
+  my_fields.C_gas_metalDensity = new gr_float[field_size];
+  my_fields.N_gas_metalDensity = new gr_float[field_size];
+  my_fields.O_gas_metalDensity = new gr_float[field_size];
+  my_fields.Ne_gas_metalDensity = new gr_float[field_size];
+  my_fields.Mg_gas_metalDensity = new gr_float[field_size];
+  my_fields.Si_gas_metalDensity = new gr_float[field_size];
+  my_fields.S_gas_metalDensity = new gr_float[field_size];
+  my_fields.Ca_gas_metalDensity = new gr_float[field_size];
+  my_fields.Fe_gas_metalDensity = new gr_float[field_size];
+
+  // metal densities in dust phase
+  my_fields.He_dust_metalDensity = new gr_float[field_size];
+  my_fields.C_dust_metalDensity = new gr_float[field_size];
+  my_fields.N_dust_metalDensity = new gr_float[field_size];
+  my_fields.O_dust_metalDensity = new gr_float[field_size];
+  my_fields.Ne_dust_metalDensity = new gr_float[field_size];
+  my_fields.Mg_dust_metalDensity = new gr_float[field_size];
+  my_fields.Si_dust_metalDensity = new gr_float[field_size];
+  my_fields.S_dust_metalDensity = new gr_float[field_size];
+  my_fields.Ca_dust_metalDensity = new gr_float[field_size];
+  my_fields.Fe_dust_metalDensity = new gr_float[field_size];
+
+  // package gas phase metal densities into array for easy iteration
+  double *gas_metal_densities[NUM_METAL_SPECIES_GRACKLE];
+  gas_metal_densities[0] = my_fields.He_gas_metalDensity;
+  gas_metal_densities[1] = my_fields.C_gas_metalDensity;
+  gas_metal_densities[2] = my_fields.N_gas_metalDensity;
+  gas_metal_densities[3] = my_fields.O_gas_metalDensity;
+  gas_metal_densities[4] = my_fields.Ne_gas_metalDensity;
+  gas_metal_densities[5] = my_fields.Mg_gas_metalDensity;
+  gas_metal_densities[6] = my_fields.Si_gas_metalDensity;
+  gas_metal_densities[7] = my_fields.S_gas_metalDensity;
+  gas_metal_densities[8] = my_fields.Ca_gas_metalDensity;
+  gas_metal_densities[9] = my_fields.Fe_gas_metalDensity;
+
+  // package dust phase metal densities into array for easy iteration
+  double *dust_metal_densities[NUM_METAL_SPECIES_GRACKLE];
+  dust_metal_densities[0] = my_fields.He_dust_metalDensity;
+  dust_metal_densities[1] = my_fields.C_dust_metalDensity;
+  dust_metal_densities[2] = my_fields.N_dust_metalDensity;
+  dust_metal_densities[3] = my_fields.O_dust_metalDensity;
+  dust_metal_densities[4] = my_fields.Ne_dust_metalDensity;
+  dust_metal_densities[5] = my_fields.Mg_dust_metalDensity;
+  dust_metal_densities[6] = my_fields.Si_dust_metalDensity;
+  dust_metal_densities[7] = my_fields.S_dust_metalDensity;
+  dust_metal_densities[8] = my_fields.Ca_dust_metalDensity;
+  dust_metal_densities[9] = my_fields.Fe_dust_metalDensity;
 
   // set temperature units
   double temperature_units = mh * pow(my_units.a_units * 
@@ -200,9 +245,9 @@ int main(int argc, char *argv[])
     my_fields.SNe_ThisTimeStep[i] = 1.0 * 0.01067 * dt * my_units.time_units / pow(my_units.length_units, 3);
 
     for (int f = 0;f < 10;f++) {
-      my_fields.gas_metal_densities[f][i] = my_fields.density[i] *
+      gas_metal_densities[f][i] = my_fields.density[i] *
         gas_metallicity * grackle_data->SolarAbundances[f];
-      my_fields.dust_metal_densities[f][i] = my_fields.gas_metal_densities[f][i] *
+      dust_metal_densities[f][i] = gas_metal_densities[f][i] *
         grackle_data->local_dust_to_gas_ratio / grackle_data->SolarMetalFractionByMass;
     }
   }
@@ -217,10 +262,10 @@ int main(int argc, char *argv[])
   gmtot = dmtot = 0;
   for (int f = 0;f < 10;f++) {
     fprintf(stderr, "BEFORE: %g, %g\n",
-            (my_fields.gas_metal_densities[f][0] / my_fields.density[0]),
-            (my_fields.dust_metal_densities[f][0] / my_fields.density[0]));
-    gmtot += my_fields.gas_metal_densities[f][0];
-    dmtot += my_fields.dust_metal_densities[f][0];
+            (gas_metal_densities[f][0] / my_fields.density[0]),
+            (dust_metal_densities[f][0] / my_fields.density[0]));
+    gmtot += gas_metal_densities[f][0];
+    dmtot += dust_metal_densities[f][0];
   }
   fprintf(stderr, "BEFORE TOTALS: %g, %g, %g\n", gmtot, dmtot, (gmtot+dmtot));
 
@@ -304,10 +349,10 @@ int main(int argc, char *argv[])
   gmtot = dmtot = 0;
   for (int f = 0;f < 10;f++) {
     fprintf(stderr, "AFTER: %g, %g\n",
-            (my_fields.gas_metal_densities[f][0] / my_fields.density[0]),
-            (my_fields.dust_metal_densities[f][0] / my_fields.density[0]));
-    gmtot += my_fields.gas_metal_densities[f][0];
-    dmtot += my_fields.dust_metal_densities[f][0];
+            (gas_metal_densities[f][0] / my_fields.density[0]),
+            (dust_metal_densities[f][0] / my_fields.density[0]));
+    gmtot += gas_metal_densities[f][0];
+    dmtot += dust_metal_densities[f][0];
   }
   fprintf(stderr, "AFTER TOTALS: %g, %g, %g\n", gmtot, dmtot, (gmtot+dmtot));
 
