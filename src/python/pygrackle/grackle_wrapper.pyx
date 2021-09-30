@@ -494,6 +494,7 @@ cdef class chemistry_data:
         def __get__(self):
             cdef double[:] memview = <double[:self.NumberOfTemperatureBins*14]>(<double*> self.rates.k13dd)
             return np.asarray(memview)
+            
     property use_dust_evol:
         def __get__(self):
             return self.data.use_dust_evol
