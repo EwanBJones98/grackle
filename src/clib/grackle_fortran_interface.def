@@ -75,6 +75,30 @@ c     This is the fortran definition of grackle_field_data
          TYPE(C_PTR) :: H2_self_shielding_length
 
          TYPE(C_PTR) :: isrf_habing
+
+         TYPE(C_PTR) :: He_gas_metalDensity
+         TYPE(C_PTR) :: C_gas_metalDensity
+         TYPE(C_PTR) :: N_gas_metalDensity
+         TYPE(C_PTR) :: O_gas_metalDensity
+         TYPE(C_PTR) :: Ne_gas_metalDensity
+         TYPE(C_PTR) :: Mg_gas_metalDensity
+         TYPE(C_PTR) :: Si_gas_metalDensity
+         TYPE(C_PTR) :: S_gas_metalDensity
+         TYPE(C_PTR) :: Ca_gas_metalDensity
+         TYPE(C_PTR) :: Fe_gas_metalDensity
+
+         TYPE(C_PTR) :: He_dust_metalDensity
+         TYPE(C_PTR) :: C_dust_metalDensity
+         TYPE(C_PTR) :: N_dust_metalDensity
+         TYPE(C_PTR) :: O_dust_metalDensity
+         TYPE(C_PTR) :: Ne_dust_metalDensity
+         TYPE(C_PTR) :: Mg_dust_metalDensity
+         TYPE(C_PTR) :: Si_dust_metalDensity
+         TYPE(C_PTR) :: S_dust_metalDensity
+         TYPE(C_PTR) :: Ca_dust_metalDensity
+         TYPE(C_PTR) :: Fe_dust_metalDensity
+  
+         TYPE(C_PTR) :: SNe_ThisTimeStep
       END TYPE
 
 c     This is the fortran definition of grackle_chemistry_data
