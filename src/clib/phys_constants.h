@@ -44,6 +44,9 @@
 
 #define pi                              3.14159265358979323846
 
+/* Stefan-Boltzmann constant [erg cm-2 s-1 k-4] */
+
+#define sigma_sb                        5.670373e-5
 
 /************************************************/
 
