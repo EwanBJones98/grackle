@@ -88,6 +88,11 @@ int calculate_dust_temperature(code_units *my_units,
                                grackle_field_data *my_fields,
                                gr_float *dust_temperature);
 
+int calc_tdust_1d(double *tdust, double *tgas, double *nh, double *gasgr,
+                    double isrf, int *itmask, double trad, int j, int k,
+                    chemistry_data_storage *my_rates,
+                    grackle_field_data *my_fields);
+
 int local_calculate_dust_temperature(chemistry_data *my_chemistry,
                                      chemistry_data_storage *my_rates,
                                      code_units *my_units,

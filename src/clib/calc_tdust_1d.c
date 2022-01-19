@@ -95,7 +95,7 @@ void calc_kappa_gr(double tdust[], double kgr[], int itmask[], int in, int is,
 void calc_gr_balance (double tdust[], double tgas[], double kgr[],
                     double trad4, double _gamma_isrf[], double nh[],
                     int itmask[], double sol[], int in, int is, int ie,
-                    chemistry_data_storage *my_rates)
+                    double *gasgr)
 {
     /*============== INIT ==============*/
     //* Defining constants
@@ -106,7 +106,7 @@ void calc_gr_balance (double tdust[], double tgas[], double kgr[],
         if (itmask[i]) {
             sol[i] = _gamma_isrf[i] + radf * kgr[i] *
                         (trad4 - pow(tdust[i],4)) +
-                        (my_rates->gas_grain[i] * nh[i] *
+                        (gasgr[i] * nh[i] *
                         (tgas[i] - tdust[i]));
         }
     }
@@ -138,8 +138,8 @@ void calc_gr_balance (double tdust[], double tgas[], double kgr[],
 *     itmask   - iteration mask
 *   
 ******************************************/
-int calc_tdust_1d(double *tdust, double *tgas, double *nh, double isrf,
-                    int *itmask, double trad, int j, int k,
+int calc_tdust_1d(double *tdust, double *tgas, double *nh, double *gasgr,
+                    double isrf, int *itmask, double trad, int j, int k,
                     chemistry_data_storage *my_rates,
                     grackle_field_data *my_fields)
 {
@@ -159,7 +159,7 @@ int calc_tdust_1d(double *tdust, double *tgas, double *nh, double isrf,
     double trad4 = pow( max(1.0, trad), 4 );
     // Set total cells for calculation
     c_done = 0, nm_done = 0;
-    c_total = ie - is + 1;
+    c_total = ie - is + 1; //! Not sure if I need the +1 here as it may be fortran indexing
 
     //* Local slice variables
     double kgr[in], kgrplus[in], sol[in], solplus[in], slope[in], tdplus[in],
@@ -214,9 +214,9 @@ int calc_tdust_1d(double *tdust, double *tgas, double *nh, double isrf,
 
         // Calculate heating/cooling balance
         calc_gr_balance(tdustnow, tgas, kgr, trad4, _gamma_isrf, nh,
-                        nm_itmask, sol, in, is, ie, my_rates);
+                        nm_itmask, sol, in, is, ie, gasgr);
         calc_gr_balance(tdplus, tgas, kgrplus, trad4, _gamma_isrf, nh,
-                        nm_itmask, solplus, in, is, ie, my_rates);
+                        nm_itmask, solplus, in, is, ie, gasgr);
 
         for (int i = is; i <= ie; i++) {
             if (nm_itmask[i]) {
@@ -304,7 +304,7 @@ int calc_tdust_1d(double *tdust, double *tgas, double *nh, double isrf,
 #pragma omp critical
 {
 #endif
-            fpritnf(stderr, 'calc_tdust_1d failed using both methods for %d cells.',
+            fprintf(stderr, 'calc_tdust_1d failed using both methods for %d cells.',
                         c_total - c_done);
 #ifdef _OPENMP
 }
