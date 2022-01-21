@@ -10,6 +10,12 @@
 #endif
 #include "phys_constants.h"
 
+// Function prototype for calc_tdust_1d
+int calc_tdust_1d(double *tdust, double *tgas, double *nh, double *gasgr,
+                    double *isrf, int *itmask, double trad, int j, int k,
+                    chemistry_data_storage *my_rates,
+                    grackle_field_data *my_fields);
+
 /*****************************************
 *_________ FUNCTION CALC_TDUST_3D_________
 * 
@@ -70,8 +76,8 @@ int calc_tdust_3d(gr_float *gas_temperature, gr_float *dust_temperature, double 
             //! Again not sure if you need the +1 here, don't think you do 
             //! as its used directly as an index
             int k = t/dj + my_fields->grid_start+2; // + 1;
-            int j = mod(t,dj) + my_fields->grid_start+1; // + 1;
-
+            int j = t%dj + my_fields->grid_start+1; // + 1;
+            
             int is = my_fields->grid_start;
             int ie = my_fields->grid_end;
             for (int i = is; i <= ie; i++) {
@@ -118,8 +124,8 @@ int calc_tdust_3d(gr_float *gas_temperature, gr_float *dust_temperature, double 
             }
 
             //* Compute dust temperature in a slice
-            calc_tdust_1d(tdust, tgas, nh, gasgr, myisrf, itmask, trad,
-                            in, is, ie, j, k);
+            calc_tdust_1d(tdust, tgas, nh, gasgr, myisrf, itmask, trad, j, k,
+                            my_rates, my_fields);
 
             //* Copy slice values back to grid
             for (int i = is; i <= ie; i++) {

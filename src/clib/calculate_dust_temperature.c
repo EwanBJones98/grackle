@@ -50,6 +50,11 @@ extern void FORTRAN_NAME(calc_tdust_3d_g)(
 	gr_float *gas_temp, gr_float *dust_temp,
         int *iisrffield, gr_float* isrf_habing);
 
+int calc_tdust_3d(gr_float *gas_temperature, gr_float *dust_temperature, double *temperature_units,
+                    double *co_length_units, double *co_density_units, grackle_field_data *my_fields,
+                    chemistry_data *my_chemistry, chemistry_data_storage *my_rates, 
+                    code_units *my_units);
+
 int local_calculate_dust_temperature(chemistry_data *my_chemistry,
                                      chemistry_data_storage *my_rates,
                                      code_units *my_units,
@@ -138,11 +143,74 @@ int local_calculate_dust_temperature(chemistry_data *my_chemistry,
   return SUCCESS;
 }
 
+int local_calculate_dust_temperature_c(chemistry_data *my_chemistry,
+                                     chemistry_data_storage *my_rates,
+                                     code_units *my_units,
+                                     grackle_field_data *my_fields,
+                                     gr_float *dust_temperature)
+{
+
+  if (!my_chemistry->use_grackle)
+    return SUCCESS;
+
+  if (my_chemistry->dust_chemistry < 1 && my_chemistry->h2_on_dust < 1)
+    return SUCCESS;
+
+  double co_length_units, co_density_units;
+  if (my_units->comoving_coordinates == TRUE) {
+    co_length_units = my_units->length_units;
+    co_density_units = my_units->density_units;
+  }
+  else {
+    co_length_units = my_units->length_units *
+      my_units->a_value * my_units->a_units;
+    co_density_units = my_units->density_units /
+      POW(my_units->a_value * my_units->a_units, 3);
+  }
+  double temperature_units = mh * POW(my_units->velocity_units, 2) / kboltz;
+
+  /* Compute the size of the fields. */
+ 
+  int i, dim, size = 1;
+  for (dim = 0; dim < my_fields->grid_rank; dim++)
+    size *= my_fields->grid_dimension[dim];
+
+  gr_float *temperature;
+  temperature = malloc(size * sizeof(gr_float));
+  if (local_calculate_temperature(my_chemistry, my_rates, my_units,
+                                  my_fields, temperature) == FAIL) {
+    fprintf(stderr, "Error in local_calculate_temperature.\n");
+    return FAIL;
+  }
+
+  /* Call the appropriate FORTRAN routine to do the work. */
+
+  calc_tdust_3d(temperature, dust_temperature, &temperature_units, &co_length_units,
+                &co_density_units, my_fields, my_chemistry, my_rates, my_units);
+
+  free(temperature);
+
+  return SUCCESS;
+}
+
 int calculate_dust_temperature(code_units *my_units,
                                grackle_field_data *my_fields,
                                gr_float *dust_temperature)
 {
   if (local_calculate_dust_temperature(
+          grackle_data, &grackle_rates, my_units,
+          my_fields, dust_temperature) == FAIL) {
+    fprintf(stderr, "Error in local_calculate_dust_temperature.\n");
+    return FAIL;
+  }
+  return SUCCESS;
+}
+
+int calculate_dust_temperature_c(code_units *my_units,
+                               grackle_field_data *my_fields,
+                               gr_float *dust_temperature)
+{
+  if (local_calculate_dust_temperature_c(
           grackle_data, &grackle_rates, my_units,
           my_fields, dust_temperature) == FAIL) {
     fprintf(stderr, "Error in local_calculate_dust_temperature.\n");

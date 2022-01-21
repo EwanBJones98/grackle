@@ -139,7 +139,7 @@ void calc_gr_balance (double tdust[], double tgas[], double kgr[],
 *   
 ******************************************/
 int calc_tdust_1d(double *tdust, double *tgas, double *nh, double *gasgr,
-                    double isrf, int *itmask, double trad, int j, int k,
+                    double *isrf, int *itmask, double trad, int j, int k,
                     chemistry_data_storage *my_rates,
                     grackle_field_data *my_fields)
 {
@@ -170,7 +170,7 @@ int calc_tdust_1d(double *tdust, double *tgas, double *nh, double *gasgr,
     //* Set local iteration mask and initial guess
     for (int i = is; i <= ie; i++) {
         if (itmask[i]) {
-            _gamma_isrf[i] = isrf * my_rates->gamma_isrf;
+            _gamma_isrf[i] = isrf[i] * my_rates->gamma_isrf;
         }
     }
 

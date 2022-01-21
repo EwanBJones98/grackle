@@ -338,7 +338,17 @@ int main(int argc, char *argv[])
     return EXIT_FAILURE;
   }
 
-  fprintf(stderr, "dust_temperature = %g K.\n", dust_temperature[0]);
+  //! Calculate dust temperature using refactored (c) version
+  gr_float *dust_temperature_c;
+  dust_temperature_c = new gr_float[field_size];
+  if (calculate_dust_temperature_c(&my_units, &my_fields,
+                                    dust_temperature_c) == 0) {
+    fprintf(stderr, "Error in calculate_dust_temperature_c. \n");
+    return EXIT_FAILURE;
+  }
+
+  fprintf(stderr, "dust_temperature grackle = %g K.\n", dust_temperature[0]);
+  fprintf(stderr, "dust_temperature c       = %g K.\n", dust_temperature_c[0]);
 
   fprintf(stderr, "AFTER: %g, %g\n",
           (my_fields.metal_density[0] / my_fields.density[0]),
