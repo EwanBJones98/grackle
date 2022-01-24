@@ -627,7 +627,7 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
 !              compute minimum rate timestep
                if (iDustEvol .eq. 1) then
                   call dust_tau_for_timestep(in, jn, kn, i, j, k,
-     &                 d, tgas, metal,
+     &                 d, tgas, tdust, metal,
      &                 met1, met2, met3, met4, met5, met6,
      &                 met7, met8, met9, met10, sne,
      &                 tau_accr, tau_dest, tau_sput,
@@ -867,7 +867,7 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
             do i = is+1, ie+1
                 if (itmask(i)) then
                    call dust_growth_and_destruction(in,jn,kn,i,j,k,
-     &                  dust, metal, tgas,
+     &                  dust, metal, tgas, tdust,
      &                  met1, met2, met3, met4, met5, met6,
      &                  met7, met8, met9, met10,
      &                  dmet1, dmet2, dmet3, dmet4, dmet5, dmet6,
