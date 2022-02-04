@@ -293,8 +293,8 @@
             if (iZscale .eq. 1) then
                edot_met(i) = edot_met(i) * metallicity(i)
 
-               if (edot_met(i) .ne. edot_met(i)) then
-                  write(*,*) "edot_met NaN at end of line 289 in cool1d_cloudy. Enter any letter to continue.", edot_met(i)
+               if (edot(i) .ne. edot(i)) then
+                  write(*,*) "edot NaN at end of line 294 in cool1d_cloudy. Enter any letter to continue.", edot(i)
                   read(*,*) userinp
                endif
 
@@ -304,7 +304,8 @@
      &           (edot_met(i) * rhoH(i) * rhoH(i))
 
             if (edot(i) .ne. edot(i)) then
-               write(*,*) "edot NaN after line 254 in cool1d_cloudy. Enter any letter to continue.", edot(i)
+               write(*,*) "edot NaN after line 303 in cool1d_cloudy. Enter any letter to continue.", edot(i),
+     &                    ",rhoH=",rhoH(i),",edot_met=",edot_met(i)
                read(*,*) userinp
             endif
 

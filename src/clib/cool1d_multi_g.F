@@ -465,10 +465,11 @@
 #ifdef _OPENMP
 !$omp critical
 #endif
-            write(6,*) 'NaN in edot[1]: ', i, j, k, edot(i), 
+            write(6,*) 'NaN in edot[1] (435): ', i, j, k, edot(i), 
      &           HI(i,j,k), HII(i,j,k), HeI(i,j,k), HeII(i,j,k), 
      &           HeIII(i,j,k), de(i,j,k), d(i,j,k), 
      &           tgas(i), p2d(i)
+            read(*,*) userinp
 #ifdef _OPENMP
 !$omp end critical
 #endif
@@ -700,6 +701,16 @@ c  new (correct) way: (april 4, 2007)
             end if
          enddo
       endif
+
+      do i = is+1, ie+1
+         if (edot(i) .ne. edot(i)) then
+            write(6,*) 'NaN in edot[1] (698): ', i, j, k, edot(i), 
+     &               HI(i,j,k), HII(i,j,k), HeI(i,j,k), HeII(i,j,k), 
+     &               HeIII(i,j,k), de(i,j,k), d(i,j,k), 
+     &               tgas(i), p2d(i)
+            read(*,*) userinp
+         endif
+      enddo
 
 !     Calculate dust to gas ratio
 
@@ -987,10 +998,19 @@ c  new (correct) way: (april 4, 2007)
 !
            endif
         enddo
-
       endif
 
       endif
+
+      do i=is+1, ie+1
+         if (edot(i) .ne. edot(i)) then
+            write(6,*) 'NaN in edot[1] (992): ', i, j, k, edot(i), 
+     &                HI(i,j,k), HII(i,j,k), HeI(i,j,k), HeII(i,j,k), 
+     &                HeIII(i,j,k), de(i,j,k), d(i,j,k), 
+     &                tgas(i), p2d(i)
+            read(*,*) userinp
+         endif
+        enddo
 
 !     --- Cloudy primordial cooling and heating ---
 
@@ -1110,6 +1130,16 @@ c  new (correct) way: (april 4, 2007)
 
       endif
 
+      do i=is+1, ie+1
+         if (edot(i) .ne. edot(i)) then
+            write(6,*) 'NaN in edot[1] (1125): ', i, j, k, edot(i), 
+     &                HI(i,j,k), HII(i,j,k), HeI(i,j,k), HeII(i,j,k), 
+     &                HeIII(i,j,k), de(i,j,k), d(i,j,k), 
+     &                tgas(i), p2d(i)
+            read(*,*) userinp
+         endif
+      enddo
+
 !     Compton cooling or heating and X-ray compton heating
 
       do i = is + 1, ie + 1
@@ -1143,6 +1173,7 @@ c  new (correct) way: (april 4, 2007)
                   write(6,*) 'NaN in edot[2]: ', i,j,k, edot(i),
      &                photogamma(i,j,k), HI(i,j,k), de(i,j,k), d(i,j,k),
      &                e(i,j,k), p2d(i), tgas(i), dom, urho, aye, mh
+                  read(*,*) userinp
 #ifdef _OPENMP
 !$omp end critical
 #endif
@@ -1213,6 +1244,14 @@ c  new (correct) way: (april 4, 2007)
      &          / coolunit / dom
          end if
       enddo
+
+      if (edot(i) .ne. edot(i)) then
+         write(6,*) 'NaN in edot[1] (1243): ', i, j, k, edot(i), 
+     &               HI(i,j,k), HII(i,j,k), HeI(i,j,k), HeII(i,j,k), 
+     &               HeIII(i,j,k), de(i,j,k), d(i,j,k), 
+     &               tgas(i), p2d(i)
+         read(*,*) userinp
+      endif
 
       endif
 

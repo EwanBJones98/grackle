@@ -2027,8 +2027,21 @@ c
 !            tau = (H2dmag/1e-5_DKIND)**-1.0_DKIND
 !            tau = max(tau, 1.e-5_DKIND)
 !            atten = min((1.-exp(-tau))/tau,1._DKIND)
+
+            if (edot(i) .ne. edot(i)) then
+               write(*,*) "edot NaN after line 1861! edot=", edot(i),
+     &            ", chunit=",chunit,", H2delta=",H2delta(i)
+            endif
+
             atten = 1._DKIND
             edot(i) = edot(i) + chunit * H2delta(i) * atten
+
+            if (edot(i) .ne. edot(i)) then
+               write(*,*) "edot NaN after line 1861! edot=", edot(i),
+     &            ", chunit=",chunit,", H2delta=",H2delta(i),", atten=",
+     &            atten
+            endif
+
 !     &       + H2I(i,j,k)*( k21(i) * HI(i,j,k)**2.0_DKIND
 !     &                    - k23(i) * H2I(i,j,k))
 !H * (k22 * H^2 - k13 * H_2) + H_2 * (k21 * H^2 - k23 * H_2) */
