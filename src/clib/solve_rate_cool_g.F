@@ -499,6 +499,15 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
                endif
             enddo
 
+            do i = is+1, ie+1
+               if (de(i,j,k) .lt. 0) then
+                  write(*,*) "de negative at iteration", iter, "in loop over subcyles within ",
+     &                       "solve_rate_cool (line 503). Enter any letter to continue.",
+     &                       de(i,j,k)
+                  read(*,*) userinp
+               endif
+            enddo
+
 !           Compute the cooling rate, tgas, tdust, and metallicity for this row
 
             call cool1d_multi_g(

@@ -274,6 +274,12 @@
      &              HI(i,j,k) + HII(i,j,k) + de(i,j,k)
                rhoH(i) = HI(i,j,k) + HII(i,j,k)
                myde(i) = de(i,j,k)
+
+               if (myde(i) .lt. 0) then
+                  write(*,*) "myde negative (276)", myde(i)
+                  read(*,*) userinp
+               endif
+
             end if
          enddo
 
@@ -1042,13 +1048,30 @@ c  new (correct) way: (april 4, 2007)
 
                myde(i) = 1 - mmw(i) * (3.0_DKIND * fh + 1.0_DKIND) /
      &              4.0_DKIND
+
+               if (myde(i) .lt. 0) then
+                  write(*,*) "myde negative (1049)", myde(i)
+                  read(*,*) userinp
+               endif
+
                if (imetal .eq. 1) then
                   myde(i) = myde(i) - mmw(i) * metal(i,j,k) /
      &                 (d(i,j,k) * mu_metal)
+
+               if (myde(i) .lt. 0) then
+                  write(*,*) "myde negative (1058)", myde(i)
+                  read(*,*) userinp
+               endif
+
                endif
                myde(i) = d(i,j,k) * myde(i) / mmw(i)
                myde(i) = max(myde(i), 0._DKIND)
 
+               if (myde(i) .lt. 0) then
+                  write(*,*) "myde negative (1067)", myde(i)
+                  read(*,*) userinp
+               endif
+               
             end if
          enddo
 
@@ -1122,9 +1145,20 @@ c  new (correct) way: (april 4, 2007)
           do i = is + 1, ie + 1
              if (itmask(i)) then
                 grbeta = 0.74_DKIND / tgas(i)**0.068_DKIND
+                
+                
+                write(*,*) "edot nan before calculation", edot(i)
+
                 edot(i) = edot(i) -
      &               regr(i) * (myisrf(i)*dom_inv / myde(i))**grbeta *
      &               myde(i) * rhoH(i)
+
+                if (edot(i) .ne. edot(i)) then
+                  write(*,*) "edot=",edot(i),",regr=",regr(i),",myisrf",
+     &               myisrf(i),",dom_inv=",dom_inv,",myde=",myde(i),
+     &               ",grbeta=",grbeta,",rhoH=",rhoH(i)
+                  read(*,*) userinp
+                endif
              endif
           enddo
 
