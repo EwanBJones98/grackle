@@ -352,6 +352,15 @@
       endif
 
       do i = is+1, ie+1
+         if (metallicity(i) .ne. metallicity(i)) then 
+            write(*,*) "metallicity NaN after its calculation -- line 349.", metallicity(i)
+            write(*,*) "metal = ", metal(i,j,k), "d = ", d(i,j,k), "z_solar = ", z_solar
+            write(*,*) "Enter any letter to continue."
+            read(*,*) userinp
+         endif
+      enddo
+
+      do i = is+1, ie+1
          if ( itmask(i) ) then
             mynh(i) = rhoH(i) * dom
          end if
@@ -736,6 +745,17 @@ c  new (correct) way: (april 4, 2007)
          endif
       endif
 
+      do i = is+1, ie+1
+         if (dust2gas(i) .ne. dust2gas(i)) then 
+            write(*,*) "dust2gas NaN after its calculation -- line 727.", dust2gas(i)
+            write(*,*) "dust = ", dust(i,j,k), "d = ", d(i,j,k), "fgr = ", fgr, "metallicity = ", metallicity(i)
+            write(*,*) "Enter any letter to continue."
+            read(*,*) userinp
+         endif
+      enddo
+
+
+
 !     Calculate interstellar radiation field
 
       if (anydust .or. (igammah .gt. 1)) then
@@ -759,13 +779,6 @@ c  new (correct) way: (april 4, 2007)
       if (anydust) then
 
 !     Look up gas/grain heat transfer rates
-
-         do i = is+1, ie+1
-            if (gasgr(i) .ne. gasgr(i)) then 
-               write(*,*) "gasgr NaN before gas-grain calculation -- line 755.", gasgr(i)
-               read(*,*) userinp
-            endif
-         enddo
 
          do i = is+1, ie+1
             if ( itmask(i) ) then
@@ -1146,9 +1159,6 @@ c  new (correct) way: (april 4, 2007)
              if (itmask(i)) then
                 grbeta = 0.74_DKIND / tgas(i)**0.068_DKIND
                 
-                
-                write(*,*) "edot nan before calculation", edot(i)
-
                 edot(i) = edot(i) -
      &               regr(i) * (myisrf(i)*dom_inv / myde(i))**grbeta *
      &               myde(i) * rhoH(i)
@@ -1272,6 +1282,10 @@ c  new (correct) way: (april 4, 2007)
 
       if (iMheat .eq. 1) then
 
+      if (edot(i) .ne. edot(i)) then
+         write(6,*) 'NaN before edot[1] (1243): ', edot(i)
+      endif
+
       do i = is+1, ie+1
          if ( itmask(i) ) then
             edot(i) = edot(i) + Mheat(i,j,k) * d(i,j,k) * mh
@@ -1283,7 +1297,7 @@ c  new (correct) way: (april 4, 2007)
          write(6,*) 'NaN in edot[1] (1243): ', i, j, k, edot(i), 
      &               HI(i,j,k), HII(i,j,k), HeI(i,j,k), HeII(i,j,k), 
      &               HeIII(i,j,k), de(i,j,k), d(i,j,k), 
-     &               tgas(i), p2d(i)
+     &               tgas(i), p2d(i), Mheat(i,j,k), itmask(i)
          read(*,*) userinp
       endif
 
