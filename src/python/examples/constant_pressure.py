@@ -38,19 +38,21 @@ if __name__ == "__main__":
     current_redshift = 0.
 
     # Set initial values
-    density             = 0.1 # g /cm^3
-    initial_temperature = 1.e6 # K
+    density             = 100.0 # g /cm^3
+    initial_temperature = 1.e4 # K
     final_time          = 100.0 # Myr
 
     # Set solver parameters
     my_chemistry = chemistry_data()
     my_chemistry.use_grackle = 1
     my_chemistry.with_radiative_cooling = 1
-    my_chemistry.primordial_chemistry = 0
+    my_chemistry.primordial_chemistry = 2
     my_chemistry.metal_cooling = 1
     my_chemistry.UVbackground = 1
-    my_chemistry.self_shielding_method = 0
-    my_chemistry.H2_self_shielding = 0
+    my_chemistry.self_shielding_method = 3
+    my_chemistry.H2_self_shielding = 3
+    my_chemistry.h2_on_dust = 1
+    my_chemistry.interstellar_radiation_field = 1.0
     my_dir = os.path.dirname(os.path.abspath(__file__))
     grackle_data_file = os.path.join(
         my_dir, "..", "..", "..", "input", "CloudyData_UVB=HM2012.h5")
@@ -88,7 +90,7 @@ if __name__ == "__main__":
         fc["DII"][:] = tiny_number * fc["density"]
         fc["HDI"][:] = tiny_number * fc["density"]
     if my_chemistry.metal_cooling == 1:
-        fc["metal"][:] = 0.1 * fc["density"] * \
+        fc["metal"][:] = 1e-3 * fc["density"] * \
           my_chemistry.SolarMetalFractionByMass
 
     fc["x-velocity"][:] = 0.0
@@ -108,15 +110,19 @@ if __name__ == "__main__":
 
     p1, = pyplot.loglog(data["time"].to("Myr"), data["temperature"],
                         color="black", label="T")
+    p2, = pyplot.loglog(data["time"].to("Myr"), data["dust_temperature"],
+                        color="blue", label="T$_{dust}$")
     pyplot.xlabel("Time [Myr]")
     pyplot.ylabel("T [K]")
 
     pyplot.twinx()
-    p2, = pyplot.semilogx(data["time"].to("Myr"), data["mean_molecular_weight"],
-                          color="red", label="$\\mu$")
-    pyplot.ylabel("$\\mu$")
-    pyplot.legend([p1,p2],["T","$\\mu$"], fancybox=True,
-                  loc="center left")
+    p3, = pyplot.loglog(data["time"].to("Myr"), data["H2I"]/data["density"],
+                        color="red", label="$f_{H2}$")
+    pyplot.ylabel("$f_{H2}$")
+    pyplot.legend()
+    pyplot.legend([p1,p2, p3], ["T$_{gas}$", "T$_{dust}$", "$f_{H2}$"],
+                  fancybox=True, loc="center left")
+    pyplot.ylim(1e-8, 1)
     pyplot.tight_layout()
     name = model.name
     pyplot.savefig(f"{name}.png")
