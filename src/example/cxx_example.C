@@ -337,8 +337,9 @@ int main(int argc, char *argv[])
     fprintf(stderr, "Error in calculate_dust_temperature.\n");
     return EXIT_FAILURE;
   }
+  fprintf(stderr, "FINISHED FORTRAN CALCULATION\n");
 
-  //! Calculate dust temperature using refactored (c) version
+  //! Calculate dust temperature using c version
   gr_float *dust_temperature_c;
   dust_temperature_c = new gr_float[field_size];
   if (calculate_dust_temperature_c(&my_units, &my_fields,
@@ -346,6 +347,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "Error in calculate_dust_temperature_c. \n");
     return EXIT_FAILURE;
   }
+  fprintf(stderr, "FINISHED C CALCULATION\n");
 
   fprintf(stderr, "dust_temperature grackle = %g K.\n", dust_temperature[0]);
   fprintf(stderr, "dust_temperature c       = %g K.\n", dust_temperature_c[0]);

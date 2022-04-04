@@ -184,7 +184,7 @@ int local_calculate_dust_temperature_c(chemistry_data *my_chemistry,
   }
 
   /* Call the appropriate FORTRAN routine to do the work. */
-
+  fprintf(stderr, "Call calc_tdust_3d\n");
   calc_tdust_3d(temperature, dust_temperature, &temperature_units, &co_length_units,
                 &co_density_units, my_fields, my_chemistry, my_rates, my_units);
 
@@ -210,9 +210,8 @@ int calculate_dust_temperature_c(code_units *my_units,
                                grackle_field_data *my_fields,
                                gr_float *dust_temperature)
 {
-  if (local_calculate_dust_temperature_c(
-          grackle_data, &grackle_rates, my_units,
-          my_fields, dust_temperature) == FAIL) {
+  if (local_calculate_dust_temperature_c( grackle_data, &grackle_rates, my_units,
+                                          my_fields, dust_temperature) == FAIL) {
     fprintf(stderr, "Error in local_calculate_dust_temperature.\n");
     return FAIL;
   }

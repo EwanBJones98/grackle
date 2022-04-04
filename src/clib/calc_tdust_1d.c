@@ -23,7 +23,7 @@
 !    Calculate grain plank mean opacity
 !
 !  INPUTS:
-!     in       - i dimension of 3D fields
+!     in       - dimension of 1D slice in grid
 !
 !     tdust    - dust temperature
 !
@@ -73,7 +73,7 @@ void calc_kappa_gr(double tdust[], double kgr[], int itmask[], int in, int is,
 !    Calculate grain heating/cooling balance
 !
 !  INPUTS:
-!     in       - i dimension of 3D fields
+!     in       - dimension of 1D slice in grid
 !
 !     tdust    - dust temperature
 !     tgas     - gas temperature
@@ -149,8 +149,8 @@ int calc_tdust_1d(double *tdust, double *tgas, double *nh, double *gasgr,
     double radf = 4.0 * sigma_sb, kgr1 = 4.0e-4, tol = 1.0e-5, bi_tol = 1.0e-3,
             minpert = 1.0e-10;
     int itmax = 50, bi_itmax = 30;
-    int in = my_fields->grid_dimension, is = my_fields->grid_dimension+1,
-            ie = my_fields->grid_dimension+2;
+    int in = my_fields->grid_dimension[0], is = my_fields->grid_start[0],
+            ie = my_fields->grid_end[0];
     double _gamma_isrf[in]; // Internal gamma_isrf array
 
     //* Local variables
@@ -159,7 +159,7 @@ int calc_tdust_1d(double *tdust, double *tgas, double *nh, double *gasgr,
     double trad4 = pow( max(1.0, trad), 4 );
     // Set total cells for calculation
     c_done = 0, nm_done = 0;
-    c_total = ie - is + 1; //! Not sure if I need the +1 here as it may be fortran indexing
+    c_total = ie - is + 1;
 
     //* Local slice variables
     double kgr[in], kgrplus[in], sol[in], solplus[in], slope[in], tdplus[in],

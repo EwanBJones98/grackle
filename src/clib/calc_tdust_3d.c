@@ -35,7 +35,7 @@ int calc_tdust_3d(gr_float *gas_temperature, gr_float *dust_temperature, double 
                     code_units *my_units)
 {
     /*============== INIT ==============*/
-    int in = my_fields->grid_dimension;
+    int in = my_fields->grid_dimension[0];
     int itmask[in], indixe[in];
     double myisrf[in], nh[in], tgas[in], tdust[in], logtem[in], t1[in], t2[in], tdef[in], gasgr[in];
     /*==================================*/
@@ -45,7 +45,7 @@ int calc_tdust_3d(gr_float *gas_temperature, gr_float *dust_temperature, double 
     double logtem9 = log(my_chemistry->TemperatureEnd);
     double dlogtem = ( log(my_chemistry->TemperatureEnd) - log(my_chemistry->TemperatureStart) )
                         / ( (float) my_chemistry->NumberOfTemperatureBins );
-
+    
     //* Set units
     double tbase1   = my_units->time_units;
         // co_length_units is [x]*a = [x]*[a]*a'
@@ -55,14 +55,13 @@ int calc_tdust_3d(gr_float *gas_temperature, gr_float *dust_temperature, double 
     double coolunit = ( pow(my_units->a_units,5) * pow(xbase1,2) * pow(mh,2) ) /
                         ( pow(tbase1,3) * dbase1 );
     double zr       = 1.0 / (my_units->a_value*my_units->a_units) - 1.0;
-
+    
     //* Set CMB temperature
     double trad = 2.73 * (1.0 + zr);
-
-    //* Loop over zones, and do enture i-column in one go
-    //! Not sure if I need the +1's here as it may be from fortran indexing
-    int dk = my_fields->grid_end+2 - my_fields->grid_start+2 + 1;
-    int dj = my_fields->grid_end+1 - my_fields->grid_start+1 + 1;
+    
+    //* Loop over zones, and do entire i-column in one go
+    int dk = my_fields->grid_end[2] - my_fields->grid_start[2] + 1;
+    int dj = my_fields->grid_end[1] - my_fields->grid_start[1] + 1;
 
     // Parallelise the k and j loops with OpenMP.
     // Flat j and k loops for better parallelism.
@@ -75,14 +74,17 @@ int calc_tdust_3d(gr_float *gas_temperature, gr_float *dust_temperature, double 
         for (int t = 0; t < dk*dj; t++) {
             //! Again not sure if you need the +1 here, don't think you do 
             //! as its used directly as an index
-            int k = t/dj + my_fields->grid_start+2; // + 1;
-            int j = t%dj + my_fields->grid_start+1; // + 1;
+            int k = t/dj + my_fields->grid_start[2]; // + 1;
+            int j = t%dj + my_fields->grid_start[1]; // + 1;
             
-            int is = my_fields->grid_start;
-            int ie = my_fields->grid_end;
+            int is = my_fields->grid_start[0];
+            int ie = my_fields->grid_end[0];
             for (int i = is; i <= ie; i++) {
                 //Set itmask to all true
                 itmask[i] = TRUE;
+
+                //Calculate the 1D index of the pseudo-3D array
+                int ind3d = i + my_fields->grid_dimension[0]*(j + my_fields->grid_dimension[1]*k);
 
                 // Compute interstellar radiation field
                 if (my_chemistry->use_isrf_field > 0) {
@@ -126,7 +128,7 @@ int calc_tdust_3d(gr_float *gas_temperature, gr_float *dust_temperature, double 
             //* Compute dust temperature in a slice
             calc_tdust_1d(tdust, tgas, nh, gasgr, myisrf, itmask, trad, j, k,
                             my_rates, my_fields);
-
+                            
             //* Copy slice values back to grid
             for (int i = is; i <= ie; i++) {
                 dust_temperature[i,j,k] = tdust[i];
