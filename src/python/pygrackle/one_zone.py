@@ -292,12 +292,13 @@ class CoolingModel(OneZoneModel):
     stopping_criteria = ("final_time", "final_temperature")
 
     def __init__(self, fc, data=None, safety_factor=0.01,
-                 final_time=None, final_temperature=None):
+                 final_time=None, final_temperature=None,
+                 external_data=None):
 
         self.safety_factor = safety_factor
         self.final_time = final_time
         self.final_temperature = final_temperature
-        super().__init__(fc, data=data)
+        super().__init__(fc, data=data, external_data=external_data)
 
     @property
     def finished(self):
