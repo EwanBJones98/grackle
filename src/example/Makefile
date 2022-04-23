@@ -133,6 +133,25 @@ c_example: $(MODULES) c_example.o
          fi)
 
 #-----------------------------------------------------------------------
+# PURE C OMP PRESSURE EXAMPLE
+#-----------------------------------------------------------------------
+
+c_pressure_example: $(MODULES) c_pressure_example.o
+	@rm -f $@
+	@echo "Linking"
+	-@$(LD) $(LDFLAGS) -o c_pressure_example c_pressure_example.o $(LIBS) $(GRACKLE_LIB) >& $(OUTPUT)
+	@(if [ -e $@ ]; then \
+             echo "Success!"; \
+         else \
+             echo "$(LD) $(LDFLAGS) -o c_pressure_example c_pressure_example.o $(LIBS) $(GRACKLE_LIB)" >> temp1; \
+             cat temp1 $(OUTPUT) > temp2; \
+             rm -f temp1; \
+             mv -f temp2 $(OUTPUT); \
+             echo "Failed! See $(OUTPUT) for error messages"; \
+         fi)
+
+
+#-----------------------------------------------------------------------
 # FORTRAN EXAMPLE
 #-----------------------------------------------------------------------
 

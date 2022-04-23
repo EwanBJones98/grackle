@@ -451,12 +451,14 @@
 
 !                    Collisional excitations
 
+!  ~~ CHECKPOINT 1 ~~ (collisional excitations)
      &             - ceHI  (i)*HI  (i,j,k)*de(i,j,k)              ! ce of HI
      &             - ceHeI (i)*HeII(i,j,k)*de(i,j,k)**2*dom/4._DKIND  ! ce of HeI
      &             - ceHeII(i)*HeII(i,j,k)*de(i,j,k)/4._DKIND         ! ce of HeII
 
 !                    Collisional ionizations
 
+!  ~~ CHECKPOINT 2 ~~ (collisional ionizations)
      &             - ciHI  (i)*HI  (i,j,k)*de(i,j,k)              ! ci of HI
      &             - ciHeI (i)*HeI (i,j,k)*de(i,j,k)/4._DKIND         ! ci of HeI
      &             - ciHeII(i)*HeII(i,j,k)*de(i,j,k)/4._DKIND         ! ci of HeII
@@ -464,6 +466,7 @@
 
 !                    Recombinations
 
+!  ~~ CHECKPOINT 3 ~~ (recombinations)
      &             - reHII  (i)*HII  (i,j,k)*de(i,j,k)           ! re of HII
      &             - reHeII1(i)*HeII (i,j,k)*de(i,j,k)/4._DKIND      ! re of HeII
      &             - reHeII2(i)*HeII (i,j,k)*de(i,j,k)/4._DKIND      ! re of HeII
@@ -471,6 +474,7 @@
 
 !                    Bremsstrahlung
 
+! ~~ CHECKPOINT 4 ~~ (bremsstrahlung)
      &             - brem(i)*(HII(i,j,k)+HeII(i,j,k)/4._DKIND +
      &           HeIII(i,j,k)) * de(i,j,k)
 
@@ -551,6 +555,8 @@
      &               + gael(i) * de(i,j,k)
 c            gphdl1 = gphdl(i)/dom
             gphdl1 = h2lte(i)/dom
+
+!  ~~ CHECKPOINT 5: 1/2 ~~ (H2 cooling)
             edot(i) = edot(i) - real(ih2co, DKIND)*fudge*H2I(i,j,k)*
      &           h2lte(i)/(1._DKIND + gphdl1/galdl(i)) / (2._DKIND*dom)
 
@@ -600,6 +606,8 @@ c            gphdl1 = gphdl(i)/dom
                 fudge = 1._DKIND
             endif
             gphdl1 = gphdl(i)/(HI(i,j,k)*dom)
+
+!  ~~ CHECKPOINT 5: 2/2 ~~ (H2 cooling)
             edot(i) = edot(i) - real(ih2co, DKIND)*fudge*H2I(i,j,k)*
      &           gphdl(i)/(1._DKIND + gphdl1/gpldl(i)) / (2._DKIND*dom)
 
@@ -645,6 +653,7 @@ c            gphdl1 = gphdl(i)/dom
             fudge = min(fudge, 1._DKIND)
 #endif /* OPTICAL_DEPTH_FUDGE */
 
+!  ~~ CHECKPOINT 5.2 ~~ (H2 cooling -- not currently used)
             edot(i) = edot(i) - real(ih2co, DKIND)*fudge*H2I(i,j,k)*(
      &           vibh(i)/(1._DKIND+vibh(i)/max(   vibl     ,tiny)) +
      &           roth(i)/(1._DKIND+roth(i)/max(qq*rotl(i),tiny))     
@@ -673,6 +682,8 @@ c               Matt's attempt at a second exponentialier cutoff
                 tau = max(tau, 1.e-5_DKIND)
                 ciefudge = ciefudge*min((1.-exp(-tau))/tau,1._DKIND)
 c               ciefudge, which is applied to the continuum, is applied to edot
+
+!  ~~ CHECKPOINT 6 ~~ (collision induced excitation H2-H2 and H2-He)
                 edot(i) = ciefudge*(edot(i) - 
      &                  H2I(i,j,k)*(d(i,j,k)*cieco(i)))
               endif
@@ -710,6 +721,8 @@ c     .                     (hdlte1/(1._DKIND + hdlte1/hdlow1)/(2._DKIND*dom))
 c  new (correct) way: (april 4, 2007)
                hdlte1 = hdlte(i)/(HI(i,j,k)*dom)
                hdlow1 = max(hdlow(i), tiny)
+
+!  ~~ CHECKPOINT A.1 ~~ (HD cooling -- not currently used)
                edot(i) = edot(i) - HDI(i,j,k)*
      .              (hdlte(i)/(1._DKIND + hdlte1/hdlow1)) /
      &              (3._DKIND*dom)
@@ -818,6 +831,8 @@ c  new (correct) way: (april 4, 2007)
 
          do i = is+1, ie+1
             if ( itmask(i) ) then
+
+!  ~~ CHECKPOINT 7 ~~ (gas-grain heat transfer)
                edot(i) = edot(i) - 
      &              gasgr(i) * (tgas(i) - tdust(i)) * 
      &              dust2gas(i) * rhoH(i) * rhoH(i)
@@ -868,8 +883,11 @@ c  new (correct) way: (april 4, 2007)
       if (ispecies .gt. 0) then
 
       if (iradshield == 0) then ! no shielding
+
         do i = is+1, ie+1
            if ( itmask(i) ) then
+
+!  ~~ CHECKPOINT 8 ~~ (photoionization heating)
               edot(i) = edot(i) + real(ipiht, DKIND)*(
      &               piHI  *HI  (i,j,k) ! pi of HI
      &             + piHeI *HeI (i,j,k)*0.25_DKIND ! pi of HeI
@@ -902,6 +920,7 @@ c  new (correct) way: (april 4, 2007)
      &            nratio)**(-0.84_DKIND)
               endif
 
+!  ~~ CHECKPOINT 9 ~~ (approx HI self-shielding)
              edot(i) = edot(i) + real(ipiht,DKIND)*(
      &              piHI  *HI  (i,j,k)* fSShHI
      &            + piHeI * HeI(i,j,k)*0.25_DKIND
@@ -955,6 +974,7 @@ c  new (correct) way: (april 4, 2007)
      &             nratio_he)**(-0.84_DKIND)
               endif
 
+!  ~~ CHECKPOINT 10 ~~ (HI self-shielding, approx HeI and HeII self-shielding)
              edot(i) = edot(i) + real(ipiht, DKIND)*(
      &              piHi * HI(i,j,k)* fSShHI
      &            + piHeI * HeI(i,j,k)*0.25_DKIND* fSShHeI
@@ -1008,6 +1028,7 @@ c  new (correct) way: (april 4, 2007)
      &             nratio_he)**(-0.84_DKIND)
               endif
 
+!  ~~ CHECKPOINT 11 ~~ (HI and HeI self-shielding)
              edot(i) = edot(i) + real(ipiht, DKIND)*(
      &              piHi * HI (i,j,k)* fSShHI
      &           + piHeI * HeI(i,j,k)* fSShHeI
@@ -1136,6 +1157,8 @@ c  new (correct) way: (april 4, 2007)
       endif
 
       if (igammah .gt. 0) then
+
+!  ~~ CHECKPOINT 12 ~~ (photo-electric heating from UV-irradiated dust)
           do i = is + 1, ie + 1
              if (itmask(i)) then
                 edot(i) = edot(i) + gammaha_eff(i) * rhoH(i) *
@@ -1159,6 +1182,7 @@ c  new (correct) way: (april 4, 2007)
              if (itmask(i)) then
                 grbeta = 0.74_DKIND / tgas(i)**0.068_DKIND
                 
+!  ~~ CHECKPOINT 13 ~~ (electron recombination onto dust grains)
                 edot(i) = edot(i) -
      &               regr(i) * (myisrf(i)*dom_inv / myde(i))**grbeta *
      &               myde(i) * rhoH(i)
@@ -1193,10 +1217,12 @@ c  new (correct) way: (april 4, 2007)
 
 !                  Compton cooling or heating
 
+!  ~~ CHECKPOINT 14 ~~ (compton cooling)
      &           - comp1      * (tgas(i) - comp2)     * myde(i)*dom_inv
 
 !                  X-ray compton heating
 
+!  ~~ CHECKPOINT 15 ~~ (x-ray compton heating)
      &           - comp_xraya * (tgas(i) - comp_temp) * myde(i)*dom_inv
 
          endif
@@ -1207,6 +1233,8 @@ c  new (correct) way: (april 4, 2007)
       if (iradtrans .eq. 1) then
           do i = is + 1, ie + 1
             if (itmask(i)) then
+
+!  ~~ CHECKPOINT 16 ~~ (photoheating from radiative transfer)
               edot(i) = edot(i) + real(ipiht, DKIND) * photogamma(i,j,k)
      &                          / coolunit * HI(i,j,k) / dom
 
@@ -1274,6 +1302,8 @@ c  new (correct) way: (april 4, 2007)
 
       do i = is+1, ie+1
          if ( itmask(i) ) then
+
+!  ~~ CHECKPOINT 17 ~~ (volumetric heating term)
             edot(i) = edot(i) + Vheat(i,j,k) / coolunit / dom**2
          end if
       enddo
@@ -1288,6 +1318,8 @@ c  new (correct) way: (april 4, 2007)
 
       do i = is+1, ie+1
          if ( itmask(i) ) then
+            
+!  ~~ CHECKPOINT 18 ~~ (specific heating term)
             edot(i) = edot(i) + Mheat(i,j,k) * d(i,j,k) * mh
      &          / coolunit / dom
          end if
