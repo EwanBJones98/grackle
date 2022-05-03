@@ -786,9 +786,17 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
 
 !              Compute timestep for 10% change
 
+                  if (abs(dtit(i)) .lt. 1e-100 .or. dtit(i) .ne. dtit(i)) then
+                     write(*,*) "before line 793 :: dtit uninitialised or NaN --> ", dtit(i)
+                  endif 
+
                   dtit(i) = min(real(abs(0.1_DKIND*
      &              energy/edot(i)), DKIND), 
      &              dt-ttot(i), dtit(i))
+
+                  if (abs(dtit(i)) .lt. 1e-100 .or. dtit(i) .ne. dtit(i)) then
+                     write(*,*) "after line 793 :: dtit uninitialised or NaN --> ", dtit(i)
+                  endif 
 
                if (dtit(i) .ne. dtit(i)) then
 #ifdef _OPENMP
