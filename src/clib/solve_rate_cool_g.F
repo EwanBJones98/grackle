@@ -510,6 +510,14 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
 
 !           Compute the cooling rate, tgas, tdust, and metallicity for this row
 
+            do i = is+1, ie+1
+               if (edot(i) .gt. 1d100) then
+                  write(*,*) " HUGE EDOT -- line 515 -- ",
+     &                       "before cool1d_multi", edot(i)
+                  read(*,*) userinp
+               endif
+            enddo
+
             call cool1d_multi_g(
      &                d, e, u, v, w, de, HI, HII, HeI, HeII, HeIII,
      &                in, jn, kn, nratec, 
@@ -550,6 +558,14 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
      &                metDataSize, metCooling, metHeating, clnew,
      &                iVheat, iMheat, Vheat, Mheat,
      &                iisrffield, isrf_habing, itmask)
+
+            do i = is+1, ie+1
+               if (edot(i) .gt. 1d100) then
+                  write(*,*) " HUGE EDOT -- line 562 -- after",
+     &                   "cool1d_multi", edot(i)
+                  read(*,*) userinp
+               endif
+            enddo
 
             if (ispecies .gt. 0) then
 
@@ -654,6 +670,11 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
                    tau_dest(i) = huge8
                    tau_sput(i) = huge8
                endif
+               
+               if (dtit(i) .lt. 0) then
+                  write(*,*) "dtit negative -- line 675", dtit(i)
+                  read(*,*) userinp
+               endif
 
                olddtit = dtit(i)
                dtit(i) = min(abs(0.1_DKIND*de(i,j,k)/dedot(i)),
@@ -662,6 +683,14 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
      &              0.1_DKIND*tau_accr(i), 
      &              0.1_DKIND*tau_dest(i), 
      &              0.1_DKIND*tau_sput(i))
+
+               if (dtit(i) .lt. 0) then
+                  write(*,*) "dtit negative line 683 -- dtit=", dtit(i),
+     &                        "dt=", dt, "ttot=", ttot(i), "tau_accr=",
+     &                        tau_accr(i), "tau_dest=", tau_dest(i),
+     &                        "tau_sput=", tau_sput(i)
+                  read(*,*) userinp
+               endif
 
                if (d(i,j,k)*dom .gt. 1e8_DKIND .and. 
      &              edot(i) .gt. 0._DKIND) then
@@ -713,9 +742,20 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
 #endif
                 endif
                 dtit(i) = min(dtit(i), 0.1_DKIND*heq/dheq)
+
+                if (dtit(i) .lt. 0) then
+                  write(*,*) "dtit negative -- line 739"
+                  read(*,*) userinp
+                endif
+
               endif
               if (iter.gt.10_DKIND) then
                  dtit(i) = min(olddtit*1.5_DKIND, dtit(i))
+
+                 if (dtit(i) .lt. 0) then
+                   write(*,*) "dtit negative -- line 748"
+                   read(*,*) userinp
+                 endif
               endif
 
 #define DONT_WRITE_COOLING_DEBUG
@@ -761,6 +801,12 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
 #endif /* WRITE_COOLING_DEBUG */
             else               ! itmask
                dtit(i) = dt;
+
+               if (dtit(i) .lt. 0) then
+                  write(*,*) "dtit negative -- line 798"
+                  read(*,*) userinp
+               endif
+
             endif
             enddo               ! end loop over i
 
@@ -793,6 +839,11 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
                   dtit(i) = min(real(abs(0.1_DKIND*
      &              energy/edot(i)), DKIND), 
      &              dt-ttot(i), dtit(i))
+
+                  if (dtit(i) .lt. 0) then
+                     write(*,*) "dtit negative -- line 836"
+                     read(*,*) userinp
+                  endif
 
                   if (abs(dtit(i)) .lt. 1e-100 .or. dtit(i) .ne. dtit(i)) then
                      write(*,*) "after line 793 :: dtit uninitialised or NaN --> ", dtit(i)
@@ -913,6 +964,16 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
                if (abs(dt-ttot(i)) .lt.
      &              tolerance*dt) itmask(i) = .false.
                if (ttot(i).lt.ttmin) ttmin = ttot(i)
+            enddo
+
+            do i=is+1, ie+1
+               if ( (ttot(i) .le. 0) .or. (ttmin .le. 0) ) then
+                  write(*,*) "negative timesteps -- line 936",
+     &                  "ttot=", ttot(i), "dtit=", dtit(i), "dt=", dt,
+     &                  "ttmin=", ttmin, "tolerance=", tolerance,
+     &                  "itmask=", itmask
+                  read(*,*) userinp
+               endif
             enddo
 
 !           If all cells are done (on this slice), then exit

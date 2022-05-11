@@ -201,6 +201,13 @@
          endif
       enddo
 
+      do i = is+1, ie+1
+         if (edot(i) .gt. 1d100) then
+            write(*,*) " HUGE EDOT -- line 206 -- cool1d_multi", edot(i)
+            read(*,*) userinp
+         endif
+      enddo
+
 !     Set compton cooling coefficients (and temperature)
 
       comp1 = compa  * (1._DKIND + zr)**4
@@ -446,6 +453,13 @@
 !     Compute the cooling function
 
       do i = is+1, ie+1
+         if (edot(i) .gt. 1d100) then
+            write(*,*) " HUGE EDOT -- line 450 -- cool1d_multi", edot(i)
+            read(*,*) userinp
+         endif
+      enddo
+
+      do i = is+1, ie+1
          if ( itmask(i) ) then
          edot(i) = (
 
@@ -491,6 +505,13 @@
          endif
          
          end if
+      enddo
+
+      do i = is+1, ie+1
+         if (edot(i) .gt. 1d100) then
+            write(*,*) " HUGE EDOT -- line 498 -- cool1d_multi", edot(i)
+            read(*,*) userinp
+         endif
       enddo
 
       endif
@@ -556,6 +577,14 @@ c            gphdl1 = gphdl(i)/dom
 
             end if
          enddo
+
+         do i = is+1, ie+1
+            if (edot(i) .gt. 1d100) then
+               write(*,*) " HUGE EDOT -- line 569 -- cool1d_multi",
+     &          edot(i)
+               read(*,*) userinp
+            endif
+         enddo
 #else
 
 #define USE_GALLI_PALLA1999
@@ -606,6 +635,13 @@ c            gphdl1 = gphdl(i)/dom
             end if
          enddo
 
+         do i = is+1, ie+1
+            if (edot(i) .gt. 1d100) then
+               write(*,*) " HUGE EDOT -- line 625 -- cool1d_multi", edot(i)
+               read(*,*) userinp
+            endif
+         enddo
+
 #else /* USE_GALLI_PALLA1999 */
 
          do i = is+1, ie+1
@@ -652,6 +688,13 @@ c            gphdl1 = gphdl(i)/dom
             end if
          enddo
 
+         do i = is+1, ie+1
+            if (edot(i) .gt. 1d100) then
+               write(*,*) " HUGE EDOT -- line 678 -- cool1d_multi", edot(i)
+               read(*,*) userinp
+            endif
+         enddo
+
 #endif /* USE_GALLI_PALLA1999 */
 #endif /* USE_GLOVER_ABEL2008 */
 
@@ -681,6 +724,13 @@ c               ciefudge, which is applied to the continuum, is applied to edot
          endif
 
       endif
+
+      do i = is+1, ie+1
+         if (edot(i) .gt. 1d100) then
+            write(*,*) " HUGE EDOT -- line 715 -- cool1d_multi", edot(i)
+            read(*,*) userinp
+         endif
+      enddo
 
 !     --- Cooling from HD ---
 
@@ -716,6 +766,13 @@ c  new (correct) way: (april 4, 2007)
             end if
          enddo
       endif
+
+      do i = is+1, ie+1
+         if (edot(i) .gt. 1d100) then
+            write(*,*) " HUGE EDOT -- line 757 -- cool1d_multi", edot(i)
+            read(*,*) userinp
+         endif
+      enddo
 
       do i = is+1, ie+1
          if (edot(i) .ne. edot(i)) then
@@ -824,6 +881,14 @@ c  new (correct) way: (april 4, 2007)
             endif
          enddo
 
+         do i = is+1, ie+1
+            if (edot(i) .gt. 1d100) then
+               write(*,*) " HUGE EDOT -- line 871 -- cool1d_multi",
+     &                     edot(i)
+               read(*,*) userinp
+            endif
+         enddo
+
          nan_flag = 0
          do i = is + 1, ie + 1
             if (edot(i) .ne. edot(i)) then
@@ -878,6 +943,13 @@ c  new (correct) way: (april 4, 2007)
            end if
         enddo
 
+        do i = is+1, ie+1
+         if (edot(i) .gt. 1d100) then
+            write(*,*) " HUGE EDOT -- line 932 -- cool1d_multi", edot(i)
+            read(*,*) userinp
+         endif
+      enddo
+
       else if (iradshield == 1) then
 !
 !     approximate self shielding using Eq. 13 and 14 from
@@ -909,6 +981,13 @@ c  new (correct) way: (april 4, 2007)
      &             )/dom
            endif
         enddo
+
+        do i = is+1, ie+1
+         if (edot(i) .gt. 1d100) then
+            write(*,*) " HUGE EDOT -- line 971 -- cool1d_multi", edot(i)
+            read(*,*) userinp
+         endif
+      enddo
 
       else if (iradshield == 2)  then
 !
@@ -962,6 +1041,13 @@ c  new (correct) way: (april 4, 2007)
      &              )/dom
            endif
         enddo
+
+        do i = is+1, ie+1
+         if (edot(i) .gt. 1d100) then
+            write(*,*) " HUGE EDOT -- line 1021 -- cool1d_multi", edot(i)
+            read(*,*) userinp
+         endif
+      enddo
 
       else if (iradshield == 3) then
 !
@@ -1018,6 +1104,13 @@ c  new (correct) way: (april 4, 2007)
            endif
         enddo
       endif
+
+      do i = is+1, ie+1
+         if (edot(i) .gt. 1d100) then
+            write(*,*) " HUGE EDOT -- line 1094 -- cool1d_multi", edot(i)
+            read(*,*) userinp
+         endif
+      enddo
 
       endif
 
@@ -1144,6 +1237,13 @@ c  new (correct) way: (april 4, 2007)
          enddo
       endif
 
+      do i = is+1, ie+1
+         if (edot(i) .gt. 1d100) then
+            write(*,*) " HUGE EDOT -- line 1226 -- cool1d_multi", edot(i)
+            read(*,*) userinp
+         endif
+      enddo
+
 !     Electron recombination onto dust grains (eqn. 9 of Wolfire 1995)
 
       if (idustall .gt. 0) then
@@ -1171,6 +1271,14 @@ c  new (correct) way: (april 4, 2007)
                 endif
              endif
           enddo
+
+          do i = is+1, ie+1
+            if (edot(i) .gt. 1d100) then
+               write(*,*) " HUGE EDOT -- line 1261 -- cool1d_multi",
+     &             edot(i)
+               read(*,*) userinp
+            endif
+         enddo
 
       endif
 
@@ -1201,6 +1309,14 @@ c  new (correct) way: (april 4, 2007)
 
          endif
       enddo
+
+      do i = is+1, ie+1
+         if (edot(i) .gt. 1d100) then
+            write(*,*) " HUGE EDOT -- line 1298 -- cool1d_multi",
+     &                  edot(i)
+            read(*,*) userinp
+         endif
+      enddo
  
 !     Photoheating from radiative transfer
 
@@ -1225,9 +1341,26 @@ c  new (correct) way: (april 4, 2007)
 
             endif
           enddo
+
+          do i = is+1, ie+1
+            if (edot(i) .gt. 1d100) then
+               write(*,*) " HUGE EDOT -- line 1329 -- cool1d_multi",
+     &                    edot(i)
+               read(*,*) userinp
+            endif
+         enddo
+
         endif
 
 !     --- Cloudy metal cooling and heating ---
+
+      do i = is+1, ie+1
+         if (edot(i) .gt. 1d100) then
+            write(*,*) " HUGE EDOT -- line 1359 -- cool1d_multi",
+     &                       edot(i)
+            read(*,*) userinp
+         endif
+      enddo
 
       if (imcool .eq. 1) then
 
@@ -1245,8 +1378,9 @@ c  new (correct) way: (april 4, 2007)
 
             do i = is+1, ie+1
                if (metal(i,j,k) .ne. metal(i,j,k)) then
-                  write(*,*) "metal NaN after cool1d_cloudy on line 1104 cool1d_multi. Enter any letter to continue.",
-     &                        metal(i,j,k)
+                  write(*,*) "metal NaN after cool1d_cloudy on line",
+     &                       "1104 cool1d_multi. Enter any letter to",
+     &                       " continue.", metal(i,j,k)
                   read(*,*) userinp
                endif
             enddo
@@ -1263,10 +1397,17 @@ c  new (correct) way: (april 4, 2007)
      &           metDataSize, metCooling, metHeating, 
      &           itmask)
 
-
          endif
 
       endif
+
+            do i = is+1, ie+1
+               if (edot(i) .gt. 1d100) then
+                  write(*,*) " HUGE EDOT -- line 1405 -- cool1d_multi",
+     &                       edot(i)
+                  read(*,*) userinp
+               endif
+            enddo
 
 !     Add user-provided volumetric and/or specific heating terms
 
@@ -1292,16 +1433,26 @@ c  new (correct) way: (april 4, 2007)
      &          / coolunit / dom
          end if
       enddo
-
-      if (edot(i) .ne. edot(i)) then
-         write(6,*) 'NaN in edot[1] (1243): ', i, j, k, edot(i), 
+      
+      do i = is+1, ie+1
+         if (edot(i) .ne. edot(i)) then
+            write(6,*) 'NaN in edot[1] (1243): ', i, j, k, edot(i),
      &               HI(i,j,k), HII(i,j,k), HeI(i,j,k), HeII(i,j,k), 
      &               HeIII(i,j,k), de(i,j,k), d(i,j,k), 
      &               tgas(i), p2d(i), Mheat(i,j,k), itmask(i)
-         read(*,*) userinp
-      endif
+            read(*,*) userinp
+         endif
+      enddo
 
       endif
+
+      do i = is+1, ie+1
+         if (edot(i) .gt. 1d100) then
+            write(*,*) " HUGE EDOT -- line 1412 -- cool1d_multi",
+     &                edot(i)
+            read(*,*) userinp
+         endif
+      enddo
 
 !     Set tgasold
 

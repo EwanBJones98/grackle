@@ -300,8 +300,20 @@
 
             endif
 
+            if (edot(i) .gt. 1d100) then
+               write(*,*) " HUGE EDOT -- line 304- cool1d_cloudy",
+     &                       edot(i)
+               read(*,*) userinp
+            endif
+
             edot(i) = edot(i) + 
      &           (edot_met(i) * rhoH(i) * rhoH(i))
+
+            if (edot(i) .gt. 1d100) then
+               write(*,*) " HUGE EDOT -- line 313- cool1d_cloudy",
+     &                       edot(i), edot_met(i), rhoH(i)
+               read(*,*) userinp
+            endif
 
             if (edot(i) .ne. edot(i)) then
                write(*,*) "edot NaN after line 303 in cool1d_cloudy. Enter any letter to continue.", edot(i),
