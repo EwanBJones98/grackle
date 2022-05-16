@@ -502,7 +502,7 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
             do i = is+1, ie+1
                if (de(i,j,k) .lt. 0) then
                   write(*,*) "de negative at iteration", iter, "in loop over subcyles within ",
-     &                       "solve_rate_cool (line 503). Enter any letter to continue.",
+     &                       "solve_rate_cool (line 520). Enter any letter to continue.",
      &                       de(i,j,k)
                   read(*,*) userinp
                endif
@@ -567,6 +567,15 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
                endif
             enddo
 
+            do i = is+1, ie+1
+               if (de(i,j,k) .lt. 0) then
+                  write(*,*) "de negative at iteration", iter, "in loop over subcyles within ",
+     &                 "solve_rate_cool (line 591). Enter any letter to continue.", 
+     &                 de(i,j,k)
+                  read(*,*) userinp
+               endif
+            enddo
+
             if (ispecies .gt. 0) then
 
 !        Look-up rates as a function of temperature for 1D set of zones
@@ -615,6 +624,15 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
      &                     iradtrans, irt_honly, 
      &                     kphHI, kphHeI, kphHeII,
      &                     itmask, edot, chunit, dom)
+
+         do i = is+1, ie+1
+            if (de(i,j,k) .lt. 0) then
+               write(*,*) "de negative at iteration", iter, "in loop over subcyles within ",
+     &                 "solve_rate_cool (line 649). Enter any letter to continue.",
+     &                 de(i,j,k)
+               read(*,*) userinp
+            endif
+         enddo
 
 !           Find timestep that keeps relative chemical changes below 10%
 
@@ -832,7 +850,7 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
 
 !              Compute timestep for 10% change
 
-                  if (abs(dtit(i)) .lt. 1e-100 .or. dtit(i) .ne. dtit(i)) then
+                  if (abs(dtit(i)) .lt. 1d-100 .or. dtit(i) .ne. dtit(i)) then
                      write(*,*) "before line 793 :: dtit uninitialised or NaN --> ", dtit(i)
                   endif 
 
@@ -845,7 +863,7 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
                      read(*,*) userinp
                   endif
 
-                  if (abs(dtit(i)) .lt. 1e-100 .or. dtit(i) .ne. dtit(i)) then
+                  if (abs(dtit(i)) .lt. 1d-100 .or. dtit(i) .ne. dtit(i)) then
                      write(*,*) "after line 793 :: dtit uninitialised or NaN --> ", dtit(i)
                   endif 
 
@@ -926,6 +944,15 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
      &                     iradtrans, irt_honly, 
      &                     kphHI, kphHeI, kphHeII,
      &                     itmask)
+
+               do i = is+1, ie+1
+                  if (de(i,j,k) .lt. 0) then
+                     write(*,*) "de negative at iteration", iter, "in loop over subcyles within ",
+     &                          "solve_rate_cool (line 969). Enter any letter to continue.",
+     &                          de(i,j,k)
+                     read(*,*) userinp
+                  endif
+               enddo
 
             endif
 
@@ -1047,6 +1074,7 @@ c            WARNING_MESSAGE
      &                     HM, H2I, H2II, DI, DII, HDI, metal, 
      &                     d, is, ie, js, je, ks, ke,
      &                     in, jn, kn, ispecies, imetal, fh, dtoh)
+
 
       endif
 
@@ -2222,7 +2250,7 @@ c -------------------------------------------------------------------
      &       DIp(in), DIIp(in), HDIp(in)
 
 !     locals
-
+      character(80) :: userinp
       integer i
       real*8 scoef, acoef
 
@@ -2586,6 +2614,24 @@ c
          dedot_prev(i) = abs(de(i,j,k)-dedot_prev(i))/
      &        max(dtit(i),tiny8)
 
+!        Ensure that electron fraction cannot be negative -- this
+!           can happen when fractions are small
+         de(i,j,k) = max(de(i,j,k), tiny8)
+
+         if ( de(i,j,k) .lt. 0.) then
+            write(*,*) "de negative after electron fraction recalculated",
+     &         "recalculated in step_rate_g (line 2654 in solve_rate_cool)"
+            write(*,*) "de = ", de(i,j,k)
+            write(*,*) "HII = ", HII(i,j,k)
+            write(*,*) "HeII = ", HeII(i,j,k)
+            write(*,*) "HeIII = ", HeIII(i,j,k)
+            write(*,*) "HM = ", HM(i,j,k), "(this is subtracted)"
+            write(*,*) "H2II = ", H2II(i,j,k)
+            write(*,*) "dtit = ", dtit(i)
+            write(*,*) "dedot_prev = ", dedot_prev(i)
+            read(*,*) userinp
+         endif
+
          if (ispecies .gt. 1) then
             HM(i,j,k)    = max(real(HMp(i), RKIND), tiny)
             H2I(i,j,k)   = max(real(H2Ip(i),RKIND), tiny)
@@ -2639,7 +2685,7 @@ c
       real*8 fh, dtoh
 
 !     locals
-
+      character(80) :: userinp
       integer i, j, k
       real*8 totalH(in), totalHe(in),
      &       totalD, metalfree(in)
@@ -2729,6 +2775,20 @@ c
      &        HeIII(i,j,k)/2._RKIND
          if (ispecies .gt. 1) de(i,j,k) = de(i,j,k)
      &        - HM(i,j,k) + H2II(i,j,k)/2._RKIND
+      enddo
+
+      do i = is+1, ie+1
+         if ( de(i,j,k) .lt. 0. ) then
+            write(*,*) "de negative after electron fraction calculated",
+     &         "in make_consistent_g (line 2814 in solve_rate_cool)"
+            write(*,*) "de = ", de(i,j,k)
+            write(*,*) "HII = ", HII(i,j,k)
+            write(*,*) "HeII = ", HeII(i,j,k)
+            write(*,*) "HeIII = ", HeIII(i,j,k)
+            write(*,*) "HM = ", HM(i,j,k), "(this is subtracted)"
+            write(*,*) "H2II = ", H2II(i,j,k)
+            read(*,*) userinp
+         endif
       enddo
 
       enddo  ! end loop over j
