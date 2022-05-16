@@ -2777,10 +2777,14 @@ c
      &        - HM(i,j,k) + H2II(i,j,k)/2._RKIND
       enddo
 
+!     Guard against negative electron density 
+      de(i,j,k) = max(de(i,j,k), tiny8)
+
       do i = is+1, ie+1
          if ( de(i,j,k) .lt. 0. ) then
             write(*,*) "de negative after electron fraction calculated",
      &         "in make_consistent_g (line 2814 in solve_rate_cool)"
+            write(*,*) "CHANGE CHANGE"
             write(*,*) "de = ", de(i,j,k)
             write(*,*) "HII = ", HII(i,j,k)
             write(*,*) "HeII = ", HeII(i,j,k)
