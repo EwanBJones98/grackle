@@ -335,6 +335,9 @@
 !  Iteration mask
 
       logical itmask(in), anydust
+
+!  DEBUG
+      real*8 metalDensBefore, totalDensBefore, dustDensBefore
 !
 !\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\/////////////////////////////////
 !=======================================================================
@@ -518,6 +521,17 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
                endif
             enddo
 
+            do i = is+1, ie+1
+               if (metal(i,j,k) .gt. d(i,j,k)) then
+                  write(*,*) "-- ERROR (before cool 1d multi) --"
+                  write(*,*) "!! metal density < dust density !!"
+                  write(*,*) "metal = ", metal(i,j,k)
+                  write(*,*) "dust = ", d(i,j,k)
+                  write(*,*) "-- ERROR --"
+                  call exit(44)
+               endif
+            enddo
+
             call cool1d_multi_g(
      &                d, e, u, v, w, de, HI, HII, HeI, HeII, HeIII,
      &                in, jn, kn, nratec, 
@@ -558,7 +572,17 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
      &                metDataSize, metCooling, metHeating, clnew,
      &                iVheat, iMheat, Vheat, Mheat,
      &                iisrffield, isrf_habing, itmask)
-
+            
+            do i = is+1, ie+1
+               if (metal(i,j,k) .gt. d(i,j,k)) then
+                  write(*,*) "-- ERROR (after cool 1d multi) --"
+                  write(*,*) "!! metal density > dust density !!"
+                  write(*,*) "metal = ", metal(i,j,k)
+                  write(*,*) "dust = ", d(i,j,k)
+                  write(*,*) "-- ERROR --"
+                  call exit(44)
+               endif
+            enddo
             do i = is+1, ie+1
                if (edot(i) .gt. 1d100) then
                   write(*,*) " HUGE EDOT -- line 562 -- after",
@@ -669,6 +693,7 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
 
 !              compute minimum rate timestep
                if (iDustEvol .eq. 1) then
+
                   call dust_tau_for_timestep(in, jn, kn, i, j, k,
      &                 d, tgas, tdust, metal,
      &                 met1, met2, met3, met4, met5, met6,
@@ -750,6 +775,13 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
      &               fh*d(i,j,k)+k13(i)**2._DKIND))
                 !write(0,*) heq2, heq1, eqt2, eqt1, tgas(i), p2d(i), 
 !     &                     edot(i)
+                if (dheq .lt. 0.) then
+!                 write(*,*) "heq2=",heq2,", heq1=",heq1,", eqt2=",eqt2
+!                 write(*,*) "eqt1=",eqt1,", tgas=",tgas(i)
+!                 write(*,*) "p2d=",p2d(i),", edot=", edot(i)
+!                 read(*,*) userinp
+                  write(*,*) "dheq negative!", dheq, ", heq=", heq
+                endif
                 if (d(i,j,k)*dom.gt.1e18_DKIND.and.i.eq.4) then
 #ifdef _OPENMP
 !$omp critical
@@ -759,10 +791,16 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
 !$omp end critical
 #endif
                 endif
-                dtit(i) = min(dtit(i), 0.1_DKIND*heq/dheq)
+ !              Ewan: I've wrapped an abs around the heq fraction as it 
+ !                    can be negative
+                dtit(i) = min(dtit(i), 0.1_DKIND*abs(heq/dheq))
 
                 if (dtit(i) .lt. 0) then
                   write(*,*) "dtit negative -- line 739"
+                  write(*,*) "dtit = ", dtit(i)
+                  write(*,*) "heq = ", heq
+                  write(*,*) "dheq = ", dheq
+                  write(*,*) "edot = ", edot(i)
                   read(*,*) userinp
                 endif
 
@@ -927,6 +965,17 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
 !           Solve rate equations with one linearly implicit Gauss-Seidel 
 !           sweep of a backward Euler method ---
 
+            do i = is+1, ie+1
+               if (metal(i,j,k) .gt. d(i,j,k)) then
+                  write(*,*) "-- ERROR (before step rate) --"
+                  write(*,*) "!! metal density > dust density !!"
+                  write(*,*) "metal = ", metal(i,j,k)
+                  write(*,*) "dust = ", d(i,j,k)
+                  write(*,*) "-- ERROR --"
+                  call exit(44)
+               endif
+            enddo
+
             call step_rate_g(de, HI, HII, HeI, HeII, HeIII, d,
      &                     HM, H2I, H2II, DI, DII, HDI, dtit,
      &                     in, jn, kn, is, ie, j, k,
@@ -946,6 +995,17 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
      &                     itmask)
 
                do i = is+1, ie+1
+                  if (metal(i,j,k) .gt. d(i,j,k)) then
+                     write(*,*) "-- ERROR (after step rate) --"
+                     write(*,*) "!! metal density > dust density !!"
+                     write(*,*) "metal = ", metal(i,j,k)
+                     write(*,*) "dust = ", d(i,j,k)
+                     write(*,*) "-- ERROR --"
+                     call exit(44)
+                  endif
+               enddo
+
+               do i = is+1, ie+1
                   if (de(i,j,k) .lt. 0) then
                      write(*,*) "de negative at iteration", iter, "in loop over subcyles within ",
      &                          "solve_rate_cool (line 969). Enter any letter to continue.",
@@ -957,10 +1017,39 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
             endif
 
 !           Dust growth and destruction 
+
+            do i = is+1, ie+1
+               if (metal(i,j,k) .gt. d(i,j,k)) then
+                  write(*,*) "-- ERROR (before dust growth and destruction) --"
+                  write(*,*) "!! metal density > dust density !!"
+                  write(*,*) "metal = ", metal(i,j,k)
+                  write(*,*) "dust = ", d(i,j,k)
+                  write(*,*) "-- ERROR --"
+                  call exit(44)
+               endif
+            enddo
             
             if (iDustEvol .eq. 1) then
             do i = is+1, ie+1
                 if (itmask(i)) then
+                   metalDensBefore = metal(i,j,k)
+                   totalDensBefore = d(i,j,k)
+                   dustDensBefore = dust(i,j,k)
+
+                   if (dustDensBefore .lt. 0) then
+                     write(*,*)
+                     write(*,*) "dust density negative before dust growth and destruction!"
+                     write(*,*) "dust density = ", dustDensBefore
+                     write(*,*)
+                     call exit(34)
+                   endif
+                   if (metalDensBefore .lt. 0) then
+                     write(*,*)
+                     write(*,*) "metal density negative before dust growth and destruction!"
+                     write(*,*) "metal density = ", metalDensBefore
+                     write(*,*)
+                     call exit(34)
+                   endif
                    call dust_growth_and_destruction(in,jn,kn,i,j,k,
      &                  dust, metal, tgas, tdust,
      &                  met1, met2, met3, met4, met5, met6,
@@ -976,7 +1065,29 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
      &                              "solve_rate_cool. Enter any letter to continue.", metal(i,j,k)
                          read(*,*) userinp
                       endif
-                   
+                      
+                      if (metal(i,j,k) .lt. 0) then
+                        write(*,*)
+                        write(*,*) "metal density negative after dust growth and destruction!"
+                        write(*,*) "metal density = ", metal(i,j,k)
+                        write(*,*)
+                        call exit(34)
+                      endif
+
+                     if (metal(i,j,k) .gt. d(i,j,k)) then
+                        write(*,*)
+                        write(*,*) "-- ERROR (after dust growth and destruction) --"
+                        write(*,*) "!! metal density > total density !!"
+                        write(*,*) "metal before = ", metalDensBefore
+                        write(*,*) "dust before = ", dustDensBefore
+                        write(*,*) "total before = ", totalDensBefore
+                        write(*,*) "metal after = ", metal(i,j,k)
+                        write(*,*) "dust  after = ", dust(i,j,k)
+                        write(*,*) "total after = ", d(i,j,k)
+                        write(*,*) "-- ERROR --"
+                        write(*,*)
+                        call exit(44)
+                     endif
                 endif
             enddo
             endif
@@ -1054,6 +1165,18 @@ c            WARNING_MESSAGE
 
       if (iexpand .eq. 1) then
 
+      dk = ke - ks + 1
+      dj = je - js + 1
+      do t = 0, dk*dj-1
+         k = t/dj      + ks+1
+         j = mod(t,dj) + js+1
+         do i = is+1, ie+1
+            if (metal(i,j,k) .gt. d(i,j,k)) then
+               write(*,*) "METAL DENSITY LARGER THAN DUST DENSITY BEFORE SCALE_FIELDS!"
+            endif
+         enddo
+      enddo
+
          call scale_fields_g(d, de, sne, HI, HII, HeI, HeII, HeIII,
      &                  HM, H2I, H2II, DI, DII, HDI, metal, dust,
      &                  met1, met2, met3, met4, met5,
@@ -1064,17 +1187,52 @@ c            WARNING_MESSAGE
      &                  in, jn, kn, ispecies, imetal, idustfield,
      &                  iDustEvol, ifdust, aye**3)
 
+         dk = ke - ks + 1
+         dj = je - js + 1
+         do t = 0, dk*dj-1
+            k = t/dj      + ks+1
+            j = mod(t,dj) + js+1
+            do i = is+1, ie+1
+               if (metal(i,j,k) .gt. d(i,j,k)) then
+                  write(*,*) "METAL DENSITY LARGER THAN DUST DENSITY AFTER SCALE_FIELDS!"
+               endif
+            enddo
+         enddo
+
       endif
 
       if (ispecies .gt. 0) then
 
 !     Correct the species to ensure consistency (i.e. type conservation)
 
+      dk = ke - ks + 1
+      dj = je - js + 1
+      do t = 0, dk*dj-1
+         k = t/dj      + ks+1
+         j = mod(t,dj) + js+1
+         do i = is+1, ie+1
+            if (metal(i,j,k) .gt. d(i,j,k)) then
+               write(*,*) "METAL DENSITY LARGER THAN DUST DENSITY AFTER MAKE_CONSISTENT!"
+            endif
+         enddo
+      enddo
+
       call make_consistent_g(de, HI, HII, HeI, HeII, HeIII,
      &                     HM, H2I, H2II, DI, DII, HDI, metal, 
      &                     d, is, ie, js, je, ks, ke,
      &                     in, jn, kn, ispecies, imetal, fh, dtoh)
-
+      
+      dk = ke - ks + 1
+      dj = je - js + 1
+      do t = 0, dk*dj-1
+         k = t/dj      + ks+1
+         j = mod(t,dj) + js+1
+         do i = is+1, ie+1
+            if (metal(i,j,k) .gt. d(i,j,k)) then
+               write(*,*) "METAL DENSITY LARGER THAN TOTAL DENSITY AFTER MAKE_CONSISTENT!"
+            endif
+         enddo
+      enddo
 
       endif
 
@@ -1154,6 +1312,14 @@ c -------------------------------------------------------------------
                   HM(i,j,k)   = HM(i,j,k)*factor
                   H2I(i,j,k)  = H2I(i,j,k)*factor
                   H2II(i,j,k) = H2II(i,j,k)*factor
+
+                  if (H2I(i,j,k) .lt. 0) then
+                     write(*,*) "-- ERROR -- "
+                     write(*,*) "H2I = ", H2I(i,j,k)
+                     write(*,*) "factor = ", factor
+                     write(*,*) "-- ERROR --"
+                  endif
+
                enddo
             enddo
          enddo
@@ -1229,6 +1395,15 @@ c -------------------------------------------------------------------
                enddo
             enddo
          enddo
+      endif
+
+      if (metal(i,j,k) .gt. d(i,j,k)) then
+         write(*,*) "-- ERROR (end of scale fields) --"
+         write(*,*) "!! metal density > dust density !!"
+         write(*,*) "metal = ", metal(i,j,k)
+         write(*,*) "dust = ", d(i,j,k)
+         write(*,*) "factor = ", factor
+         write(*,*) "-- ERROR --"
       endif
 
       return
@@ -2508,6 +2683,12 @@ c --- (C) Now do extra 3-species for molecular hydrogen ---
             H2Ip(i) = ( scoef*dtit(i) + H2I(i,j,k) )
      &                / ( 1._DKIND + acoef*dtit(i) )
 
+            if (H2Ip(i) .lt. 0) then
+               write(*,*) "scoef = ", scoef, ", dtit = ", dtit(i)
+               write(*,*) "H2I = ", H2I(i,j,k), ", acoef = ", acoef
+               call exit(666)
+            endif
+
 !           8) H-
 
             scoef = k7(i) * HI(i,j,k) * de(i,j,k) 
@@ -2636,6 +2817,11 @@ c
             HM(i,j,k)    = max(real(HMp(i), RKIND), tiny)
             H2I(i,j,k)   = max(real(H2Ip(i),RKIND), tiny)
             H2II(i,j,k)  = max(real(H2IIp(i), RKIND), tiny)
+
+            if (H2I(i,j,k) .lt. 0) then
+               write(*,*) "H2I = ", H2I(i,j,k)
+               call exit(666)
+            endif
          endif
 
          if (ispecies .gt. 2) then
@@ -2702,6 +2888,14 @@ c
       if (imetal .eq. 1) then
          do i = is+1, ie+1
             metalfree(i) = d(i,j,k) - metal(i,j,k)
+
+            if (metalfree(i) .lt. 0) then
+               write(*,*) "---- ERROR ----"
+               write(*,*) "metalfree = ", metalfree(i), ", d = ", d(i,j,k)
+               write(*,*) "metal = ", metal(i,j,k)
+               write(*,*) "---- ERROR ----"
+               call exit(123)
+            endif 
          enddo
       else
          do i = is+1, ie+1
@@ -2727,6 +2921,11 @@ c
             H2II (i,j,k) = abs(H2II (i,j,k))
             H2I  (i,j,k) = abs(H2I  (i,j,k))
             totalH(i) = totalH(i) + HM(i,j,k) + H2I(i,j,k) + H2II(i,j,k)
+
+            if (H2I(i,j,k) .lt. 0) then
+               write(*,*) "H2I = ", H2I(i,j,k)
+               call exit(666)
+            endif
          enddo
       endif
 
@@ -2736,6 +2935,11 @@ c
          correctH = real(fh*metalfree(i)/totalH(i), RKIND)
          HI(i,j,k)  = HI(i,j,k)*correctH
          HII(i,j,k) = HII(i,j,k)*correctH
+
+         if (correctH .lt. 0) then
+            write(*,*) "correctH = ", correctH, ", fh = ", fh
+            write(*,*) "metalfree = ", metalfree(i), ", totalH", totalH(i)
+         endif
 
          correctHe = real((1._DKIND - fh)*
      &        metalfree(i)/totalHe(i), RKIND)
@@ -2749,6 +2953,11 @@ c
             HM   (i,j,k) = HM(i,j,k)*correctH
             H2II (i,j,k) = H2II(i,j,k)*correctH
             H2I  (i,j,k) = H2I(i,j,k)*correctH
+
+            if (H2I(i,j,k) .lt. 0) then
+               write(*,*) "H2I = ", H2I(i,j,k), ", correctH = ", correctH
+               call exit(666)
+            endif
          endif
       enddo
 
@@ -2775,10 +2984,10 @@ c
      &        HeIII(i,j,k)/2._RKIND
          if (ispecies .gt. 1) de(i,j,k) = de(i,j,k)
      &        - HM(i,j,k) + H2II(i,j,k)/2._RKIND
-      enddo
 
 !     Guard against negative electron density 
-      de(i,j,k) = max(de(i,j,k), tiny8)
+         de(i,j,k) = max(de(i,j,k), tiny8)
+      enddo
 
       do i = is+1, ie+1
          if ( de(i,j,k) .lt. 0. ) then
