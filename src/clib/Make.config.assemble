@@ -153,6 +153,13 @@
         ASSEMBLE_OMP_FLAGS =
     endif
 
+    # Settings for enabling OpenMP for GPU
+
+    ifeq ($(CONFIG_OMP),gpu)
+        ERROR_OMP = 0
+        ASSEMBLE_OMP_FLAGS = $(MACH_OMPFLAGS)
+    endif
+
     # error if CONFIG_OMP is incorrect
 
     ifeq ($(ERROR_OMP),1)

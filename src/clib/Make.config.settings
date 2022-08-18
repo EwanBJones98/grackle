@@ -36,8 +36,9 @@
 #=======================================================================
 # CONFIG_OMP
 #=======================================================================
-#    on            Enable  OpenMP parallelization
+#    on            Enable  OpenMP CPU parallelization
 #    off           Disable OpenMP parallelization
+#    gpu           Enable  OpenMP GPU parallelization
 #-----------------------------------------------------------------------
 
      CONFIG_OMP = off

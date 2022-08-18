@@ -33,6 +33,7 @@ help-config:
 	@echo
 	@echo "      make omp-on"
 	@echo "      make omp-off"
+	@echo "      make omp-gpu"
 	@echo
 
 #-----------------------------------------------------------------------
@@ -70,7 +71,7 @@ show-config:
 	@echo
 	@echo "   CONFIG_PRECISION  [precision-{32,64}]                     : $(CONFIG_PRECISION)"
 	@echo "   CONFIG_OPT  [opt-{warn,debug,high,aggressive}]            : $(CONFIG_OPT)"
-	@echo "   CONFIG_OMP  [omp-{on,off}]                                : $(CONFIG_OMP)"
+	@echo "   CONFIG_OMP  [omp-{on,off,gpu}]                            : $(CONFIG_OMP)"
 	@echo
 
 #-----------------------------------------------------------------------
@@ -202,11 +203,12 @@ CONFIG_OPT-%: suggest-clean
 
 #-----------------------------------------------------------------------
  
-VALID_OMP = omp-on omp-off
+VALID_OMP = omp-on omp-off omp-gpu
 .PHONY: $(VALID_OMP)
 
 omp-on:  CONFIG_OMP-on
 omp-off: CONFIG_OMP-off
+omp-gpu: CONFIG_OMP-gpu
 omp-%:
 	@printf "\n\tInvalid target: $@\n\n\tValid targets: [$(VALID_OMP)]\n\n"
 CONFIG_OMP-%: suggest-clean
