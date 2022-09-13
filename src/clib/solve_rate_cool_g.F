@@ -337,10 +337,19 @@
       logical itmask(in), anydust
 
 !  DEBUG
-      real*8 metalDensBefore, totalDensBefore, dustDensBefore
+      R_PREC  dMet_i(in,jn,kn), gMet_i(in,jn,kn), tMet_i(in,jn,kn),
+     &        dMet_f(in,jn,kn), gMet_f(in,jn,kn), tMet_f(in,jn,kn),
+     &        err_tMet(in,jn,kn), d_i(in,jn,kn), d_f(in,jn,kn),
+     &        metal_i(in,jn,kn), metal_f(in,jn,kn),
+     &        dust_i(in,jn,kn), dust_f(in,jn,kn),
+     &        delta_d(in,jn,kn), delta_metal(in,jn,kn),
+     &        delta_dust(in,jn,kn)
+      integer*8 endrun, error
 !
 !\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\/////////////////////////////////
 !=======================================================================
+
+      endrun = 0
 
 !     Set error indicator
 
@@ -485,6 +494,13 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
 
 !        ------------------ Loop over subcycles ----------------
 
+c        Check that the total metal mass is conserved over all subcycles
+         do i = is+1, ie+1
+            dMet_i(i,j,k) = dust(i,j,k)
+            gMet_i(i,j,k) = metal(i,j,k)
+            tMet_i(i,j,k) = dMet_i(i,j,k) + gMet_i(i,j,k)
+         enddo
+
          do iter = 1, itmax
 
             do i = is+1, ie+1
@@ -524,9 +540,10 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
             do i = is+1, ie+1
                if (metal(i,j,k) .gt. d(i,j,k)) then
                   write(*,*) "-- ERROR (before cool 1d multi) --"
-                  write(*,*) "!! metal density < dust density !!"
+                  write(*,*) "!! gas metal density > total gas density !!"
                   write(*,*) "metal = ", metal(i,j,k)
-                  write(*,*) "dust = ", d(i,j,k)
+                  write(*,*) "dust = ", dust(i,j,k)
+                  write(*,*) "total = ", d(i,j,k)
                   write(*,*) "-- ERROR --"
                   call exit(44)
                endif
@@ -574,16 +591,6 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
      &                iisrffield, isrf_habing, itmask)
             
             do i = is+1, ie+1
-               if (metal(i,j,k) .gt. d(i,j,k)) then
-                  write(*,*) "-- ERROR (after cool 1d multi) --"
-                  write(*,*) "!! metal density > dust density !!"
-                  write(*,*) "metal = ", metal(i,j,k)
-                  write(*,*) "dust = ", d(i,j,k)
-                  write(*,*) "-- ERROR --"
-                  call exit(44)
-               endif
-            enddo
-            do i = is+1, ie+1
                if (edot(i) .gt. 1d100) then
                   write(*,*) " HUGE EDOT -- line 562 -- after",
      &                   "cool1d_multi", edot(i)
@@ -592,11 +599,14 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
             enddo
 
             do i = is+1, ie+1
-               if (de(i,j,k) .lt. 0) then
-                  write(*,*) "de negative at iteration", iter, "in loop over subcyles within ",
-     &                 "solve_rate_cool (line 591). Enter any letter to continue.", 
-     &                 de(i,j,k)
-                  read(*,*) userinp
+               if (metal(i,j,k) .gt. d(i,j,k)) then
+                  write(*,*) "-- ERROR (after cool 1d multi) --"
+                  write(*,*) "!! gas metal density > total gas density !!"
+                  write(*,*) "metal = ", metal(i,j,k)
+                  write(*,*) "dust = ", dust(i,j,k)
+                  write(*,*) "total = ", d(i,j,k)
+                  write(*,*) "-- ERROR --"
+                  call exit(45)
                endif
             enddo
 
@@ -965,16 +975,6 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
 !           Solve rate equations with one linearly implicit Gauss-Seidel 
 !           sweep of a backward Euler method ---
 
-            do i = is+1, ie+1
-               if (metal(i,j,k) .gt. d(i,j,k)) then
-                  write(*,*) "-- ERROR (before step rate) --"
-                  write(*,*) "!! metal density > dust density !!"
-                  write(*,*) "metal = ", metal(i,j,k)
-                  write(*,*) "dust = ", d(i,j,k)
-                  write(*,*) "-- ERROR --"
-                  call exit(44)
-               endif
-            enddo
 
             call step_rate_g(de, HI, HII, HeI, HeII, HeIII, d,
      &                     HM, H2I, H2II, DI, DII, HDI, dtit,
@@ -994,16 +994,6 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
      &                     kphHI, kphHeI, kphHeII,
      &                     itmask)
 
-               do i = is+1, ie+1
-                  if (metal(i,j,k) .gt. d(i,j,k)) then
-                     write(*,*) "-- ERROR (after step rate) --"
-                     write(*,*) "!! metal density > dust density !!"
-                     write(*,*) "metal = ", metal(i,j,k)
-                     write(*,*) "dust = ", d(i,j,k)
-                     write(*,*) "-- ERROR --"
-                     call exit(44)
-                  endif
-               enddo
 
                do i = is+1, ie+1
                   if (de(i,j,k) .lt. 0) then
@@ -1021,9 +1011,10 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
             do i = is+1, ie+1
                if (metal(i,j,k) .gt. d(i,j,k)) then
                   write(*,*) "-- ERROR (before dust growth and destruction) --"
-                  write(*,*) "!! metal density > dust density !!"
-                  write(*,*) "metal = ", metal(i,j,k)
-                  write(*,*) "dust = ", d(i,j,k)
+                  write(*,*) "!! gas metal density > total gas density !!"
+                  write(*,*) "gas metal = ", metal(i,j,k)
+                  write(*,*) "total gas = ", d(i,j,k)
+                  write(*,*) "dust = ", dust(i,j,k)
                   write(*,*) "-- ERROR --"
                   call exit(44)
                endif
@@ -1032,26 +1023,14 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
             if (iDustEvol .eq. 1) then
             do i = is+1, ie+1
                 if (itmask(i)) then
-                   metalDensBefore = metal(i,j,k)
-                   totalDensBefore = d(i,j,k)
-                   dustDensBefore = dust(i,j,k)
 
-                   if (dustDensBefore .lt. 0) then
-                     write(*,*)
-                     write(*,*) "dust density negative before dust growth and destruction!"
-                     write(*,*) "dust density = ", dustDensBefore
-                     write(*,*)
-                     call exit(34)
-                   endif
-                   if (metalDensBefore .lt. 0) then
-                     write(*,*)
-                     write(*,*) "metal density negative before dust growth and destruction!"
-                     write(*,*) "metal density = ", metalDensBefore
-                     write(*,*)
-                     call exit(34)
-                   endif
+c                 Variables for consistency checks
+                  d_i(i,j,k) = d(i,j,k)
+                  metal_i(i,j,k) = metal(i,j,k)
+                  dust_i(i,j,k) = dust(i,j,k)
+               
                    call dust_growth_and_destruction(in,jn,kn,i,j,k,
-     &                  dust, metal, tgas, tdust,
+     &                  d, dust, metal, tgas, tdust,
      &                  met1, met2, met3, met4, met5, met6,
      &                  met7, met8, met9, met10,
      &                  dmet1, dmet2, dmet3, dmet4, dmet5, dmet6,
@@ -1059,35 +1038,45 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
      &                  sne, tau_dest, tau_sput,
      &                  z_solar, SolarAbd, utim, urho, uxyz, aye, dt,
      &                  metpt, dmetpt)
-
-                      if (metal(i,j,k) .ne. metal(i,j,k)) then
-                         write(*,*) "metal NaN after dust_growth_and_destruction on line 869 in",
-     &                              "solve_rate_cool. Enter any letter to continue.", metal(i,j,k)
-                         read(*,*) userinp
-                      endif
-                      
-                      if (metal(i,j,k) .lt. 0) then
-                        write(*,*)
-                        write(*,*) "metal density negative after dust growth and destruction!"
-                        write(*,*) "metal density = ", metal(i,j,k)
-                        write(*,*)
-                        call exit(34)
-                      endif
-
-                     if (metal(i,j,k) .gt. d(i,j,k)) then
-                        write(*,*)
-                        write(*,*) "-- ERROR (after dust growth and destruction) --"
-                        write(*,*) "!! metal density > total density !!"
-                        write(*,*) "metal before = ", metalDensBefore
-                        write(*,*) "dust before = ", dustDensBefore
-                        write(*,*) "total before = ", totalDensBefore
-                        write(*,*) "metal after = ", metal(i,j,k)
-                        write(*,*) "dust  after = ", dust(i,j,k)
-                        write(*,*) "total after = ", d(i,j,k)
-                        write(*,*) "-- ERROR --"
-                        write(*,*)
-                        call exit(44)
-                     endif
+                  
+c                 Variables for consistency checks
+                  d_f(i,j,k) = d(i,j,k)
+                  metal_f(i,j,k) = metal(i,j,k)
+                  dust_f(i,j,k) = dust(i,j,k)
+c                 Change in the variables
+                  delta_d(i,j,k) = d_f(i,j,k) - d_i(i,j,k)
+                  delta_metal(i,j,k) = metal_f(i,j,k) - metal_i(i,j,k)
+                  delta_dust(i,j,k) = dust_f(i,j,k) - dust_i(i,j,k)
+c                 Check that the total gas density rises/falls accordingly when
+c                 metals transition between gas & dust
+                  error = 0
+                  if (abs(abs(delta_d(i,j,k))-abs(delta_metal(i,j,k))) .gt. 1d-8) then
+                     write(*,*) "Total gas density and gas metal density changed ",
+     &               "by different amounts during call to dust_growth_and_destruction!"
+                     error = 1
+                  endif
+                  if (abs(abs(delta_metal(i,j,k)) - abs(delta_dust(i,j,k))) .gt. 1d-8) then
+                     write(*,*) "Gas metal density and dust density changed ",
+     &               "by different amounts during call to dust_growth_and_destruction!"
+                     write(*,*) "Discrepant by: ", abs(abs(delta_metal(i,j,k)) - abs(delta_dust(i,j,k)))
+                     error = 1
+                  endif
+                  if (error .eq. 1) then
+                     write(*,*) ">>> Initial Values >>>"
+                     write(*,*) "gas density = ", d_i(i,j,k)
+                     write(*,*) "gas metal density = ", metal_i(i,j,k)
+                     write(*,*) "dust density = ", dust_i(i,j,k)
+                     write(*,*) ">>> Final Values >>>"
+                     write(*,*) "gas density = ", d_f(i,j,k)
+                     write(*,*) "gas metal density = ", metal_f(i,j,k)
+                     write(*,*) "dust density = ", dust_f(i,j,k)
+                     write(*,*) ">>> ∆ Values >>>"
+                     write(*,*) "∆ gas density = ", delta_d(i,j,k)
+                     write(*,*) "∆ gas metal density = ", delta_metal(i,j,k)
+                     write(*,*) "∆ dust density = ", delta_dust(i,j,k)
+                     write(*,*) "  "
+                     call exit(76)
+                  endif
                 endif
             enddo
             endif
@@ -1118,7 +1107,9 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
 
             if (abs(dt-ttmin) .lt. tolerance*dt) go to 9999
 
-!           Next subcycle iteration
+!           Next subcycle iteratio
+
+c        Check total metal mass was conserved over all subcycles
 
          enddo
 
@@ -1234,6 +1225,34 @@ c            WARNING_MESSAGE
          enddo
       enddo
 
+      endif
+
+c     Check that the total metal mass is conserved over the call to dust evolution
+      dk = ke - ks + 1
+      dj = je - js + 1
+      do t = 0, dk*dj-1
+         k = t/dj      + ks+1
+         j = mod(t,dj) + js+1
+         do i = is+1, ie+1
+            dMet_f(i,j,k) = dust(i,j,k)
+            gMet_f(i,j,k) = metal(i,j,k)
+            tMet_f(i,j,k) = dMet_f(i,j,k) + gMet_f(i,j,k)
+c                  Tolerance on fractional error of 1e-10
+            err_tMet(i,j,k) = abs(tMet_f(i,j,k) - tMet_i(i,j,k)) / tMet_i(i,j,k)
+            if (err_tMet(i,j,k) .gt. 1d-10) then
+               write(*,*) "Total metal mass not conserved over call to dust growth ",
+     &                           "and destruction!"
+               write(*,*) "Total Metal Mass --> Initial = ", tMet_i(i,j,k), ", Final = ", tMet_f(i,j,k),
+     &                           " Fractional Error = ", err_tMet(i,j,k)
+c                      write(*,*) "Gas Metal Mass --> Initial = ", gMet_i, ", Final = ", gMet_f
+c                      write(*,*) "Dust Metal Mass --> Initial = ", dMet_i, ", Final = ", dMet_f
+               endrun = 1
+            endif
+         enddo
+      enddo
+
+      if (endrun .eq. 1) then
+         call exit(99)
       endif
 
       return
@@ -1410,7 +1429,7 @@ c -------------------------------------------------------------------
       end
 
 c -----------------------------------------------------------
-!   This routine ensures that the species aren't below tiny.
+c   This routine ensures that the species aren't below tiny.
 
       subroutine ceiling_species_g(d, de, HI, HII, HeI, HeII, HeIII,
      &                           HM, H2I, H2II, DI, DII, HDI, metal,
@@ -1477,19 +1496,22 @@ c -------------------------------------------------------------------
             do j = js+1, je+1
                do i = is+1, ie+1
 
-                  if (metal(i,j,k) .ne. metal(i,j,k)) then
-                     write(*,*) "metal NaN at start of ceiling_species_g. Enter any letter to continue.",
-     &                          metal(i,j,k)
-                     read(*,*) userinp
+                  if (metal(i,j,k) .gt. d(i,j,k)) then
+                     write(*,*) "metal density greater than total ",
+     &               "(pre-modification) in ceiling_species"
+                     write(*,*) "metal density = ", metal(i,j,k)
+                     write(*,*) "total density = ", d(i,j,k)
                   endif
 
                   metal(i,j,k) = min(max(metal(i,j,k), tiny),
      &                 0.9_RKIND*d(i,j,k))
 
-                  if (metal(i,j,k) .ne. metal(i,j,k)) then
-                     write(*,*) "metal NaN at end of ceiling_species_g. Enter any letter to continue.",
-     &                          metal(i,j,k)
-                     read(*,*) userinp
+                  if (metal(i,j,k) .gt. d(i,j,k)) then
+                     write(*,*) "metal density greater than total ",
+     &               "(post-modification) in ceiling_species"
+                     write(*,*) "metal density = ", metal(i,j,k)
+                     write(*,*) "total density = ", d(i,j,k)
+                     call exit(66)
                   endif
 
                enddo
