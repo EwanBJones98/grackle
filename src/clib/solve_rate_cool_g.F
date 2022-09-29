@@ -442,14 +442,6 @@ c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 fo
         k = t/dj      + ks+1
         j = mod(t,dj) + js+1
 
-         do i = is+1, ie+1
-            if (metal(i,j,k) .ne. metal(i,j,k)) then
-               write(*,*) "metal NaN at start of solve_rate_cool. Enter any letter to continue.",
-     &                     metal(i,j,k)
-               read(*,*) userinp
-            endif
-         enddo
-
 !       tolerance = 1.0e-06_DKIND * dt
 
 !     Initialize iteration mask to true for all cells.
@@ -509,33 +501,7 @@ c        Check that the total metal mass is conserved over all subcycles
                endif
             enddo
 
-            do i = is+1, ie+1
-               if (metal(i,j,k) .ne. metal(i,j,k)) then
-                  write(*,*) "metal NaN at iteration", iter, "in loop over subcyles within ",
-     &                       "solve_rate_cool (line 503). Enter any letter to continue.",
-     &                       metal(i,j,k)
-                  read(*,*) userinp
-               endif
-            enddo
-
-            do i = is+1, ie+1
-               if (de(i,j,k) .lt. 0) then
-                  write(*,*) "de negative at iteration", iter, "in loop over subcyles within ",
-     &                       "solve_rate_cool (line 520). Enter any letter to continue.",
-     &                       de(i,j,k)
-                  read(*,*) userinp
-               endif
-            enddo
-
 !           Compute the cooling rate, tgas, tdust, and metallicity for this row
-
-            do i = is+1, ie+1
-               if (edot(i) .gt. 1d100) then
-                  write(*,*) " HUGE EDOT -- line 515 -- ",
-     &                       "before cool1d_multi", edot(i)
-                  read(*,*) userinp
-               endif
-            enddo
 
             do i = is+1, ie+1
                if (metal(i,j,k) .gt. d(i,j,k)) then
@@ -590,14 +556,6 @@ c        Check that the total metal mass is conserved over all subcycles
      &                iVheat, iMheat, Vheat, Mheat,
      &                iisrffield, isrf_habing, itmask)
             
-            do i = is+1, ie+1
-               if (edot(i) .gt. 1d100) then
-                  write(*,*) " HUGE EDOT -- line 562 -- after",
-     &                   "cool1d_multi", edot(i)
-                  read(*,*) userinp
-               endif
-            enddo
-
             do i = is+1, ie+1
                if (metal(i,j,k) .gt. d(i,j,k)) then
                   write(*,*) "-- ERROR (after cool 1d multi) --"
@@ -659,15 +617,6 @@ c        Check that the total metal mass is conserved over all subcycles
      &                     kphHI, kphHeI, kphHeII,
      &                     itmask, edot, chunit, dom)
 
-         do i = is+1, ie+1
-            if (de(i,j,k) .lt. 0) then
-               write(*,*) "de negative at iteration", iter, "in loop over subcyles within ",
-     &                 "solve_rate_cool (line 649). Enter any letter to continue.",
-     &                 de(i,j,k)
-               read(*,*) userinp
-            endif
-         enddo
-
 !           Find timestep that keeps relative chemical changes below 10%
 
             do i = is+1, ie+1
@@ -710,25 +659,13 @@ c        Check that the total metal mass is conserved over all subcycles
      &                 met7, met8, met9, met10, sne,
      &                 tau_accr, tau_dest, tau_sput,
      &                 z_solar, SolarAbd, utim, urho, uxyz, aye, dt)
-
-                   
-                  if (metal(i,j,k) .ne. metal(i,j,k)) then
-                     write(*,*) "metal NaN after dust_tau_for_timestep at line 629 ",
-     &                  "in solve_rate_cool. Enter any letter to continue.", metal(i,j,k)
-                     read(*,*) userinp
-                  endif
-                   
+ 
                else
                    tau_accr(i) = huge8
                    tau_dest(i) = huge8
                    tau_sput(i) = huge8
                endif
                
-               if (dtit(i) .lt. 0) then
-                  write(*,*) "dtit negative -- line 675", dtit(i)
-                  read(*,*) userinp
-               endif
-
                olddtit = dtit(i)
                dtit(i) = min(abs(0.1_DKIND*de(i,j,k)/dedot(i)),
      &              abs(0.1_DKIND*HI(i,j,k)/HIdot(i)),
@@ -736,14 +673,6 @@ c        Check that the total metal mass is conserved over all subcycles
      &              0.1_DKIND*tau_accr(i), 
      &              0.1_DKIND*tau_dest(i), 
      &              0.1_DKIND*tau_sput(i))
-
-               if (dtit(i) .lt. 0) then
-                  write(*,*) "dtit negative line 683 -- dtit=", dtit(i),
-     &                        "dt=", dt, "ttot=", ttot(i), "tau_accr=",
-     &                        tau_accr(i), "tau_dest=", tau_dest(i),
-     &                        "tau_sput=", tau_sput(i)
-                  read(*,*) userinp
-               endif
 
                if (d(i,j,k)*dom .gt. 1e8_DKIND .and. 
      &              edot(i) .gt. 0._DKIND) then
@@ -805,23 +734,9 @@ c        Check that the total metal mass is conserved over all subcycles
  !                    can be negative
                 dtit(i) = min(dtit(i), 0.1_DKIND*abs(heq/dheq))
 
-                if (dtit(i) .lt. 0) then
-                  write(*,*) "dtit negative -- line 739"
-                  write(*,*) "dtit = ", dtit(i)
-                  write(*,*) "heq = ", heq
-                  write(*,*) "dheq = ", dheq
-                  write(*,*) "edot = ", edot(i)
-                  read(*,*) userinp
-                endif
-
               endif
               if (iter.gt.10_DKIND) then
                  dtit(i) = min(olddtit*1.5_DKIND, dtit(i))
-
-                 if (dtit(i) .lt. 0) then
-                   write(*,*) "dtit negative -- line 748"
-                   read(*,*) userinp
-                 endif
               endif
 
 #define DONT_WRITE_COOLING_DEBUG
@@ -867,12 +782,6 @@ c        Check that the total metal mass is conserved over all subcycles
 #endif /* WRITE_COOLING_DEBUG */
             else               ! itmask
                dtit(i) = dt;
-
-               if (dtit(i) .lt. 0) then
-                  write(*,*) "dtit negative -- line 798"
-                  read(*,*) userinp
-               endif
-
             endif
             enddo               ! end loop over i
 
@@ -905,11 +814,6 @@ c        Check that the total metal mass is conserved over all subcycles
                   dtit(i) = min(real(abs(0.1_DKIND*
      &              energy/edot(i)), DKIND), 
      &              dt-ttot(i), dtit(i))
-
-                  if (dtit(i) .lt. 0) then
-                     write(*,*) "dtit negative -- line 836"
-                     read(*,*) userinp
-                  endif
 
                   if (abs(dtit(i)) .lt. 1d-100 .or. dtit(i) .ne. dtit(i)) then
                      write(*,*) "after line 793 :: dtit uninitialised or NaN --> ", dtit(i)
@@ -993,16 +897,6 @@ c        Check that the total metal mass is conserved over all subcycles
      &                     iradtrans, irt_honly, 
      &                     kphHI, kphHeI, kphHeII,
      &                     itmask)
-
-
-               do i = is+1, ie+1
-                  if (de(i,j,k) .lt. 0) then
-                     write(*,*) "de negative at iteration", iter, "in loop over subcyles within ",
-     &                          "solve_rate_cool (line 969). Enter any letter to continue.",
-     &                          de(i,j,k)
-                     read(*,*) userinp
-                  endif
-               enddo
 
             endif
 
@@ -1091,16 +985,6 @@ c                 metals transition between gas & dust
                if (abs(dt-ttot(i)) .lt.
      &              tolerance*dt) itmask(i) = .false.
                if (ttot(i).lt.ttmin) ttmin = ttot(i)
-            enddo
-
-            do i=is+1, ie+1
-               if ( (ttot(i) .le. 0) .or. (ttmin .le. 0) ) then
-                  write(*,*) "negative timesteps -- line 936",
-     &                  "ttot=", ttot(i), "dtit=", dtit(i), "dt=", dt,
-     &                  "ttmin=", ttmin, "tolerance=", tolerance,
-     &                  "itmask=", itmask
-                  read(*,*) userinp
-               endif
             enddo
 
 !           If all cells are done (on this slice), then exit
@@ -1359,19 +1243,7 @@ c -------------------------------------------------------------------
             do j = js+1, je+1
                do i = is+1, ie+1
 
-                  if (metal(i,j,k) .ne. metal(i,j,k)) then
-                     write(*,*) "metal NaN at start of scale_fields_g. Enter any letter to continue.",
-     &                          metal(i,j,k)
-                     read(*,*) userinp
-                  endif
-
                   metal(i,j,k) = metal(i,j,k)*factor
-
-                  if (metal(i,j,k) .ne. metal(i,j,k)) then
-                     write(*,*) "metal NaN at end of scale_fields_g. Enter any letter to continue.",
-     &                          metal(i,j,k)
-                     read(*,*) userinp
-                  endif
 
                enddo
             enddo
@@ -2832,7 +2704,7 @@ c
             write(*,*) "H2II = ", H2II(i,j,k)
             write(*,*) "dtit = ", dtit(i)
             write(*,*) "dedot_prev = ", dedot_prev(i)
-            read(*,*) userinp
+            call exit(13)
          endif
 
          if (ispecies .gt. 1) then
@@ -3022,7 +2894,7 @@ c
             write(*,*) "HeIII = ", HeIII(i,j,k)
             write(*,*) "HM = ", HM(i,j,k), "(this is subtracted)"
             write(*,*) "H2II = ", H2II(i,j,k)
-            read(*,*) userinp
+            call exit(13)
          endif
       enddo
 
