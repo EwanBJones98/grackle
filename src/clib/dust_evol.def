@@ -7,7 +7,8 @@
 #define SNE_COEFF                 1.0
 #define SNE_SHOCKSPEED            1.0e2
 #define DUST_GRAINSIZE            1.0e-1
-#define DUST_GROWTH_DENSREF       2.3e-22
+!#define DUST_GROWTH_DENSREF      2.3e-22
+#define DUST_GROWTH_DENSREF       2.3e-19
 #define DUST_GROWTH_TREF          5.0e1
 #define DUST_GROWTH_TAUREF        4.0e-1
 #define DUST_TIMESTEP_LIMITER     2.0e-1
@@ -19,7 +20,8 @@
 #define SNE_COEFF                 1.0d0
 #define SNE_SHOCKSPEED            1.0d2
 #define DUST_GRAINSIZE            1.0d-1
-#define DUST_GROWTH_DENSREF       2.3d-22
+!#define DUST_GROWTH_DENSREF       2.3d-22
+#define DUST_GROWTH_DENSREF       2.3d-19
 #define DUST_GROWTH_TREF          5.0d1
 #define DUST_GROWTH_TAUREF        4.0d-1
 #define DUST_TIMESTEP_LIMITER     2.0d-1
