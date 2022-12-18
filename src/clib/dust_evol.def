@@ -1,0 +1,11 @@
+#define NUM_METAL_SPECIES_GRACKLE 10
+
+#ifdef CONFIG_BFLOAT_4
+
+#define SEC_PER_YEAR_GRACKLE    3.155e7
+
+#else
+
+#define SEC_PER_YEAR_GRACKLE    3.155d7
+
+#endif

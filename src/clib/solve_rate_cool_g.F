@@ -1,4 +1,5 @@
 #include "phys_const.def"
+#include "dust_evol.def"
 
 !=======================================================================
 !///////////////////  SUBROUTINE SOLVE_RATE_COOL_G  \\\\\\\\\\\\\\\\\\\\\
@@ -184,7 +185,7 @@
 
 !  Dust evolution parameters
       
-      real*8 dust_destruction_eff, sne_coef, sne_shockspeed,
+      real*8 dust_destruction_eff, sne_coeff, sne_shockspeed,
      &       dust_grainsize, dust_growth_densref,
      &       dust_growth_tauref,
      &       SolarAbd(NUM_METAL_SPECIES_GRACKLE)
