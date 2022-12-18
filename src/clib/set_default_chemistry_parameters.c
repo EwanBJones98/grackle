@@ -132,7 +132,16 @@ chemistry_data _set_default_chemistry_parameters(void)
   my_chemistry.self_shielding_method                  = 0;
   my_chemistry.H2_self_shielding                      = 0;
 
-  my_chemistry.use_dust_evol       = 0;
+  /* Li et al 2019 dust model*/
+  my_chemistry.use_dust_evol        = 0; // Flag to activate model
+  // Model parameters
+  my_chemistry.dust_destruction_eff  = 3.0e-1;
+  my_chemistry.sne_coeff             = 1.0;
+  my_chemistry.sne_shockspeed        = 1.0e2;
+  my_chemistry.dust_grainsize        = 1.0e-1;
+  my_chemistry.dust_growth_densref   = 2.3e-22;
+  my_chemistry.dust_growth_tauref    = 1.0;
+  // Solar abundances
   my_chemistry.SolarAbundances[0]  = 0.28;    // He  (10.93 in units where log[H]=12, so photospheric mass fraction . Y=0.2485 [Hydrogen X=0.7381]; Anders+Grevesse Y=0.2485, X=0.7314)
   my_chemistry.SolarAbundances[1]  = 3.26e-3; // C   (8.43 -> 2.38e-3, AG=3.18e-3)
   my_chemistry.SolarAbundances[2]  = 1.32e-3; // N   (7.83 -> 0.70e-3, AG=1.15e-3)

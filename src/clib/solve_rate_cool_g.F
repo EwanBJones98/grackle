@@ -1,5 +1,4 @@
 #include "phys_const.def"
-#include "dust_evol.def"
 
 !=======================================================================
 !///////////////////  SUBROUTINE SOLVE_RATE_COOL_G  \\\\\\\\\\\\\\\\\\\\\
@@ -46,7 +45,10 @@
      &                metDataSize, metCooling, metHeating, clnew,
      &                iVheat, iMheat, Vheat, Mheat,
      &                iisrffield, isrf_habing,
-     &                iDustEvol, SolarAbd,
+     &                iDustEvol, dust_destruction_eff,
+     &                sne_coeff, sne_shockspeed, dust_grainsize,
+     &                dust_growth_densref, dust_growth_tauref,
+     &                SolarAbd,
      &                met1, met2, met3, met4, met5, met6,
      &                met7, met8, met9, met10,
      &                dmet1, dmet2, dmet3, dmet4, dmet5, dmet6,
@@ -178,8 +180,14 @@
 
       real*8  dx, dt, aye, temstart, temend, gamma,
      &        utim, uxyz, uaye, urho, utem, fh, dtoh, z_solar, 
-     &        fgr, dtemstart, dtemend, clEleFra,
-     &        SolarAbd(NUM_METAL_SPECIES_GRACKLE)
+     &        fgr, dtemstart, dtemend, clEleFra
+
+!  Dust evolution parameters
+      
+      real*8 dust_destruction_eff, sne_coef, sne_shockspeed,
+     &       dust_grainsize, dust_growth_densref,
+     &       dust_growth_tauref,
+     &       SolarAbd(NUM_METAL_SPECIES_GRACKLE)
 
 !  Density, energy and velocity fields fields
 
@@ -657,6 +665,10 @@ c        Check that the total metal mass is conserved over all subcycles
      &                 d, tgas, tdust, metal,
      &                 met1, met2, met3, met4, met5, met6,
      &                 met7, met8, met9, met10, sne,
+     &                 dust_destruction_eff,
+     &                 sne_coeff, sne_shockspeed,
+     &                 dust_grainsize, dust_growth_densref,
+     &                 dust_growth_tauref,
      &                 tau_accr, tau_dest, tau_sput,
      &                 z_solar, SolarAbd, utim, urho, uxyz, aye, dt)
  
@@ -929,7 +941,10 @@ c                 Variables for consistency checks
      &                  met7, met8, met9, met10,
      &                  dmet1, dmet2, dmet3, dmet4, dmet5, dmet6,
      &                  dmet7, dmet8, dmet9, dmet10,
-     &                  sne, tau_dest, tau_sput,
+     &                  sne, dust_destruction_eff,
+     &                  sne_coeff, sne_shockspeed,
+     &                  dust_grainsize, dust_growth_densref,
+     &                  dust_growth_tauref, tau_dest, tau_sput,
      &                  z_solar, SolarAbd, utim, urho, uxyz, aye, dt,
      &                  metpt, dmetpt)
                   

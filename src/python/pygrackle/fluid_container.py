@@ -34,6 +34,14 @@ _nd_fields   = ["energy",
                 "gamma", "cooling_time", "mu", "nH",
                 "mean_molecular_weight"]
 
+_metals = ["SNe_thisTimestep"]
+for s in ["He","C","N","O","Ne","Mg","Si","S","Ca","Fe"]:
+    _metals.append(f"{s}_gasDensity")
+    
+_dustMetals = []
+for s in ["He","C","N","O","Ne","Mg","Si","S","Ca","Fe"]:
+        _dustMetals.append(f"{s}_dustDensity")
+
 _fluid_names = {}
 _fluid_names[0] = _base_fluids
 _fluid_names[1] = _fluid_names[0] + \
@@ -60,10 +68,13 @@ class FluidContainer(dict):
         self.n_vals = n_vals
         for fluid in _fluid_names[self.chemistry_data.primordial_chemistry] + \
         _extra_fields.get(self.chemistry_data.primordial_chemistry, []) + \
-        _nd_fields:
+        _nd_fields + _metals:
             self._setup_fluid(fluid)
         if self.chemistry_data.use_radiative_transfer:
             for fluid in _rad_trans_names:
+                self._setup_fluid(fluid)
+        if self.chemistry_data.use_dust_evol:
+            for fluid in _dustMetals:
                 self._setup_fluid(fluid)
 
         for htype in ["specific", "volumetric"]:
