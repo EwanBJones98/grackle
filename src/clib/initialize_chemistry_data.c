@@ -339,6 +339,16 @@ void show_parameters(FILE *fp, chemistry_data *my_chemistry)
           my_chemistry->H2_self_shielding);
   fprintf(fp, "use_dust_evol                     = %d\n",
 		  my_chemistry->use_dust_evol);
+  fprintf(fp, "sne_coeff                         = %g\n",
+                  my_chemistry->sne_coeff);
+  fprintf(fp, "sne_shockspeed                    = %g\n",
+                  my_chemistry->sne_shockspeed);
+  fprintf(fp, "dust_grainsize                    = %g\n",
+                  my_chemistry->dust_grainsize);
+  fprintf(fp, "dust_growth_densref               = %g\n",
+                  my_chemistry->dust_growth_densref);
+  fprintf(fp, "dust_growth_tauref                = %g\n",
+                  my_chemistry->dust_growth_tauref);
   int f;
   for (f = 0; f < NUM_METAL_SPECIES_GRACKLE; f++) {
     fprintf(fp, "SolarAbundances[%d]                = %g\n",
