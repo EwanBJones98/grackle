@@ -31,7 +31,7 @@ def evolve_freefall(fc, final_density, safety_factor=0.01,
     # some constants for the analytical free-fall solution
     freefall_time_constant = np.power(((32. * gravitational_constant) /
                                        (3. * np.pi)), 0.5)
-
+    
     data = defaultdict(list)
     current_time = 0.0
     while fc["density"][0] * my_chemistry.density_units < final_density:
@@ -128,12 +128,14 @@ def evolve_constant_density(fc, final_temperature=None,
             break
         if final_time is not None and current_time >= final_time:
             break
-
+        
         fc.calculate_temperature()
+
         print("Evolve constant density - t: %e yr, rho: %e g/cm^3, T: %e K." %
               (current_time * my_chemistry.time_units / sec_per_year,
                fc["density"][0] * my_chemistry.density_units,
                fc["temperature"][0]))
+        
         fc.solve_chemistry(dt)
 
         add_to_data(fc, data, current_time)

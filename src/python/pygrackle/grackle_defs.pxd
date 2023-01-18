@@ -59,7 +59,13 @@ cdef extern from "grackle_chemistry_data.h":
         int self_shielding_method
         int H2_self_shielding
         int use_dust_evol
-        double SolarAbundances[11]
+        double dust_destruction_eff
+        double sne_coeff
+        double sne_shockspeed
+        double dust_grainsize
+        double dust_growth_densref
+        double dust_growth_tauref
+        double SolarAbundances[10]
 
     ctypedef struct c_chemistry_data_storage "chemistry_data_storage":
         double *k1

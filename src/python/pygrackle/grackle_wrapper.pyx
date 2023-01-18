@@ -501,6 +501,42 @@ cdef class chemistry_data:
         def __set__(self, val):
             self.data.use_dust_evol = val
 
+    property dust_destruction_eff:
+        def __get__(self):
+            return self.data.dust_destruction_eff
+        def __set__(self, val):
+            self.data.dust_destruction_eff = val
+    
+    property sne_coeff:
+        def __get__(self):
+            return self.data.sne_coeff
+        def __set__(self, val):
+            self.data.sne_coeff = val
+        
+    property sne_shockspeed:
+        def __get__(self):
+            return self.data.sne_shockspeed
+        def __set__(self, val):
+            self.data.sne_shockspeed = val
+
+    property dust_grainsize:
+        def __get__(self):
+            return self.data.dust_grainsize
+        def __set__(self, val):
+            self.data.dust_grainsize = val
+
+    property dust_growth_densref:
+        def __get__(self):
+            return self.data.dust_growth_densref
+        def __set__(self, val):
+            self.data.dust_growth_densref = val
+
+    property dust_growth_tauref:
+        def __get__(self):
+            return self.data.dust_growth_tauref
+        def __set__(self, val):
+            self.data.dust_growth_tauref = val
+
     property SolarAbundances:
         def __get__(self):
             return self.data.SolarAbundances
