@@ -1,0 +1,5 @@
+MatrixSize 	 NumIters 	 NumThreads 	 OpenMP 	 MinTime 	 MaxTime 	 MeanTime 
+
+
+
+10 	 10 	 10 	 CPU 	 6.69993e-06 	 1.0388e-05 	 7.48679e-06 
