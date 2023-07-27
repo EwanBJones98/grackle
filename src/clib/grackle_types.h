@@ -11,24 +11,29 @@
 / software.
 ************************************************************************/
 
-#ifndef __GRACKLE_TYPES_H_
-#define __GRACKLE_TYPES_H_
+#ifndef __GRACKLE_TYPES_H__
+#define __GRACKLE_TYPES_H__
 /***********************************************************************
 /  
 / VARIABLE TYPES
 /
 ************************************************************************/
 
-#ifdef CONFIG_BFLOAT_4
+#include "grackle_float.h"
+
+#ifdef GRACKLE_FLOAT_4
 #define gr_float float
 #endif
 
-#ifdef CONFIG_BFLOAT_8
+#ifdef GRACKLE_FLOAT_8
 #define gr_float double
 #endif
 
 /* Dust evolution definitions */
 #define NUM_METAL_SPECIES_GRACKLE 10
+#if defined(GRACKLE_FLOAT_4) == defined(GRACKLE_FLOAT_8)
+#error "Both GRACKLE_FLOAT_4 and GRACKLE_FLOAT_8 are defined. Only one can be defined."
+#endif
 
 typedef struct
 {
@@ -64,6 +69,8 @@ typedef struct
   gr_float *volumetric_heating_rate;
   gr_float *specific_heating_rate;
 
+  gr_float *temperature_floor;
+
   gr_float *RT_heating_rate;
   gr_float *RT_HI_ionization_rate;
   gr_float *RT_HeI_ionization_rate;
@@ -71,6 +78,7 @@ typedef struct
   gr_float *RT_H2_dissociation_rate;
 
   gr_float *H2_self_shielding_length;
+  gr_float *H2_custom_shielding_factor;
 
   gr_float *isrf_habing;
   
@@ -114,5 +122,14 @@ typedef struct
   double a_value;
 
 } code_units;
+
+typedef struct
+{
+
+  const char* version;
+  const char* branch;
+  const char* revision;
+
+} grackle_version;
 
 #endif

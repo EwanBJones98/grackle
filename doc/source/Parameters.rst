@@ -6,6 +6,8 @@ Parameters and Data Files
 Parameters
 ----------
 
+See :ref:`adding-new-params` for guidelines for adding new parameters.
+
 For all on/off integer flags, 0 is off and 1 is on.
 
 .. c:var:: int use_grackle
@@ -210,6 +212,14 @@ For all on/off integer flags, 0 is off and 1 is on.
       directly from equation 2 of `Wolfire et al. (1995)
       <https://ui.adsabs.harvard.edu/abs/1995ApJ...443..152W/abstract>`__.
 
+.. c:var:: int dust_recombination_cooling
+
+   Flag to enable recombination cooling onto dust grains using 
+   equation 9 of `Wolfire et al. (1995) 
+   <https://ui.adsabs.harvard.edu/abs/1995ApJ...443..152W/abstract>`__
+   rescaled by the local dust-to-gas ratio. This option is automatically 
+   set by :c:data:`h2_on_dust` > 0 or :c:data:`dust_chemistry` > 0.
+   Default: 0.
 
 .. note:: With :c:data:`primordial_chemistry` > 0, the electron density
    used to calculate epsilon for :c:data:`photoelectric_heating` = 3
@@ -243,6 +253,20 @@ For all on/off integer flags, 0 is off and 1 is on.
    recombination cooling (if :c:data:`dust_chemistry` > 0), and heating of
    the dust grains for the calculation of the dust temperature.
    Default: 1.7.
+
+.. c:var:: int CaseBRecombination
+
+   Flag to use the Case B recombination rates (and associated cooling
+   rates) for H\ :sup:`+`, He\ :sup:`+`, and He\ :sup:`++` instead of
+   the Case A rates. Set to 1 for Case B and 0 for Case A. The Case A
+   rates include recombinations directly to the ground state (which
+   would result in emission of an ionizing photon) as well as
+   recombinations to excited states (which eventually reach the ground
+   state through lower energy transitions). The Case B rates exclude
+   recombinations directly to the ground state under the assumption
+   that the ionizing photon is reabsorbed. Hence, the Case B rates are
+   slightly lower than the Case A rates.
+   Default: 0.
 
 .. c:var:: int Compton_xray_heating
 
@@ -313,6 +337,23 @@ For all on/off integer flags, 0 is off and 1 is on.
    provided in the :c:data:`specific_heating_rate` field of the
    :c:data:`grackle_field_data` struct.  Default: 0.
 
+.. c:var:: int use_temperature_floor
+
+   Flag to enable the use of either a scalar value or field array providing
+   a temperature floor. When set to 1, a single temperature floor
+   value should then be set using
+   :c:data:`temperature_floor_scalar`. When set to 2, temperature
+   floor values for each computational element should be set with the
+   :c:data:`temperature_floor` array pointer. When enabled, no
+   chemistry or cooling calculations will be performed on an element
+   with a temperature at or below the specified value. Default: 0.
+
+.. c:var:: double temperature_floor_scalar
+
+   The value of the temperature floor to use for all computational
+   elements. This is used when :c:data:`use_temperature_floor` is set
+   to 1.
+
 .. c:var:: int use_radiative_transfer
 
    Flag to signal that arrays of ionization and heating rates from
@@ -361,11 +402,26 @@ For all on/off integer flags, 0 is off and 1 is on.
    density. Default: 0.
 
     - 1: Use a Sobolev-like, spherically averaged method from
-      `Wolcott-Green et. al. 2011 <http://adsabs.harvard.edu/abs/2011MNRAS.418..838W>`_.
+      `Wolcott-Green \& Haiman (2019)
+      <https://ui.adsabs.harvard.edu/abs/2019MNRAS.484.2467W/>`__. Prior to
+      Grackle version 3.2, this option used the method of `Wolcott-Green et. al.
+      (2011) <https://ui.adsabs.harvard.edu/abs/2011MNRAS.418..838W/>`__.
       This option is only valid for Cartesian grid codes in 3D.
     - 2: Supply an array of lengths using the :c:data:`H2_self_shielding_length`
       field.
     - 3: Use the local Jeans length.
+
+.. c:var:: int H2_custom_shielding
+
+   Flag to enable the user to provide an additional field which acts as 
+   an additional attenuation factor for both the UV background dissociation 
+   rate and the H\ :sub:`2`\  dissociation rate given by 
+   :c:data:`RT_H2_dissociation_rate` (if present), that is separate from the 
+   :c:data:`H2_self_shielding` attenuation factor. 
+   The factor, which is intended to be unspecific can e.g. be used in order 
+   to include grain size dependent dust extinction or any other user-specific 
+   source of attenuation.
+   Default: 0.
 
 .. c:var:: int self_shielding_method
 
@@ -463,6 +519,33 @@ For all on/off integer flags, 0 is off and 1 is on.
    On/off flag to toggle calculation of rate coefficients corresponding to bremsstrahlung cooling 
    (``brem``). Default: 1
 
+.. c:var:: int max_iterations
+
+   The maximum subcycle iterations allowed when evolving the chemistry
+   network and internal energy in :c:func:`solve_chemistry`. The
+   default of 10000 should be sufficient in most situations. However,
+   certain physical conditions, such as dense gas that has been
+   photo-ionized, can lead to extremely short timesteps. In cases like
+   this, increasing the iteration limit by a factor of 10 or more is
+   enough to work through difficult conditions. For other situations
+   which are currently not well understood, this will not help. If you
+   encounter a situation where the iteration limit continues to be
+   exceeded for extremely high values, please report it. The behavior
+   of the code when the iteration limit is exceeded is controled by
+   the :c:data:`exit_after_iterations_exceeded` parameter. Default:
+   10000.
+
+.. c:var:: int exit_after_iterations_exceeded
+
+   Flag controlling the behavior when the maximum subcycle iterations
+   (set by :c:data:`max_iterations`) is exceeded in
+   :c:func:`solve_chemistry`. If set to 1, an error message will be
+   printed and the function will immediately exit with a return value
+   of 0, indicating failure. If set to 0, the message will be
+   produced and there will be no further integration, but the function
+   will proceed to a clean exit such that the simulation can be
+   continued. Default: 0.
+
 .. c:var:: int omp_nthreads
 
    Sets the number of OpenMP threads.  If not set, this will be set to
@@ -522,6 +605,21 @@ clouds. These models enforce a maximum depth of 100 pc.
 In addition, these tables contain the spectrum averaged absorption
 cross sections needed for the Rahmati et. al. 2013 self-shielding 
 approximations. Currently only the HM2012 table has been recomputed. 
+
+.. note::
+   The cooling rates in the files below are known to have unphysically
+   high heating rates at low densities (see `Issue #7
+   <https://github.com/grackle-project/grackle_data_files/issues/7>`__
+   of `grackle_data_files
+   <https://github.com/grackle-project/grackle_data_files>`__). In
+   practice, this is primarily an issue when running with
+   :c:data:`primordial_chemistry` set to 0 (i.e., fully tabulated
+   cooling mode). While this issue also affects the metal cooling
+   rates, this component is negligible in the densities and
+   temperatures where this happens. As such, these can be used with
+   :c:data:`primordial_chemistry` >= 1 and
+   :c:data:`self_shielding_method` enabled. **It is not recommended to
+   use these files with primordial_chemistry set to 0.**
 
  - **CloudyData_UVB=HM2012_shielded.h5** - updated heating and cooling
    rates with the HM2012 UV background, accounting for self-shielding.

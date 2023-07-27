@@ -119,16 +119,28 @@ output only be enabled for the root process.
    // Enable output
    grackle_verbose = 1;
 
+.. _code-units:
+
 Code Units
 ----------
 
-**It is strongly recommended to use comoving coordinates with any
-cosmological simulation.**  The :c:data:`code_units` structure contains
-conversions from code units to CGS.  If :c:data:`comoving_coordinates` is set to
-0, it is assumed that the fields passed into the solver are in the
-proper frame.  All of the units (density, length, time, velocity, and
-expansion factor) must be set.  When using the proper frame, :c:data:`a_units`
-(units for the expansion factor) must be set to 1.0.
+Many of the calculations involved in chemical reactions and radiative
+cooling include multiplications by density squared or even density
+cubed. With typical gas densities relevant to galaxy formation being
+of the order of one hydrogren atom per cubic centimeter (~10\
+:sup:`-24` g/cm\ :sup:`3`, give or take a few orders of
+magnitude), it is easy to end up with significant roundoff or
+underflow errors when quantities are stored in CGS units.
+
+The :c:data:`code_units` structure contains conversions from code
+units to CGS such that a value passed to Grackle multiplied by the
+appropriate code unit gives that value in CGS units. Units for
+density, length, time, and the expansion factor must be set
+manually. Units for velocity are then set by calling
+:c:data:`set_velocity_units`. When using the proper frame (i.e.,
+setting :c:data:`comoving_coordinates` to 0), :c:data:`a_units` (units
+for the expansion factor) must be set to 1.0. See below for
+recommendations on choosing appropriate units.
 
 .. c:type:: code_units
 
@@ -137,7 +149,7 @@ expansion factor) must be set.  When using the proper frame, :c:data:`a_units`
 .. c:var:: int comoving_coordinates
 
    If set to 1, the incoming field data is assumed to be in the comoving
-   frame.  If set to 0, the incoming field data is assumed to be in the
+   frame. If set to 0, the incoming field data is assumed to be in the
    proper frame.
 
 .. c:var:: double density_units
@@ -158,11 +170,15 @@ expansion factor) must be set.  When using the proper frame, :c:data:`a_units`
 .. c:var:: double velocity_units
 
    Conversion factor to be multiplied by velocities to return proper cm/s.
+   This should be set units the :c:data:`set_velocity_units` function. Note,
+   units of specific energy (i.e., conversion to erg/g) are then defined
+   as :c:data:`velocity_units`\ :sup:`2` (velocity units squared).
 
 .. c:var:: double a_units
 
    Conversion factor to be multiplied by the expansion factor such that
-   a\ :sub:`true`\  = a\ :sub:`code`\ * :c:data:`a_units`.
+   a\ :sub:`true`\  = a\ :sub:`code`\ * :c:data:`a_units`. When using
+   proper coordinates, :c:data:`a_units` must be set to 1.
 
 .. c:var:: double a_value
 
@@ -181,27 +197,69 @@ expansion factor) must be set.  When using the proper frame, :c:data:`a_units`
   my_units.density_units = 1.67e-24; // 1 m_H/cc
   my_units.length_units = 3.086e21;  // 1 kpc
   my_units.time_units = 3.15569e13;  // 1 Myr
-  my_units.velocity_units = my_units.length_units / my_units.time_units;
   my_units.a_units = 1.0;            // units for the expansion factor
   my_units.a_value = 1. / (1. + current_redshift) / my_units.a_units;
+  // set velocity units
+  set_velocity_units(&my_units);
 
-If :c:data:`comoving_coordinates` is set to 1, it is assumed that the fields being 
-passed to the solver are in the comoving frame.  Hence, the units must 
-convert from code units in the **comoving** frame to CGS in the **proper** 
-frame.  
+Choosing Appropriate Units
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. note:: With :c:data:`comoving_coordinate` set to 1, velocity units need to be
-   defined in the following way.
+The main consideration when setting code units is to keep density,
+length, and time values close to 1. Reasonable values for density,
+length, and time units are the hydrogen mass in g, 1 kpc to 1 Mpc in
+cm, and 1 Myr to 1 Gyr in s.
 
-.. code-block:: c++
+.. _comoving_coordinates:
 
-  my_units.velocity_units = my_units.a_units * 
-    (my_units.length_units / a_value) / my_units.time_units; // since u = a * dx/dt
+Comoving Coordinates
+^^^^^^^^^^^^^^^^^^^^
 
-For an example of using comoving units, see the units system in the 
-`Enzo <http://enzo-project.org/>`_ code.  For cosmological simulations, a
-comoving unit system is preferred, though not required, since it allows the 
-densities to stay close to 1.0.
+For cosmological simulations, a comoving unit system is preferred,
+though not required, since it allows the densities to stay close to 1
+as the universe expands. If :c:data:`comoving_coordinates` is set to
+1, it is assumed that the fields being passed to the solver are in the
+comoving frame. Hence, the units must convert from code units in the
+**comoving** frame to CGS in the **proper** frame. If
+:c:data:`comoving_coordinates` is set to 0, it is assumed that the
+fields passed into the solver are in the proper frame. For an example
+of using comoving units, see the `cosmological unit system
+<https://github.com/enzo-project/enzo-dev/blob/main/src/enzo/CosmologyGetUnits.C>`__
+in the `Enzo <http://enzo-project.org/>`_ code.
+
+As the unit system is designed to convert from the comoving to the
+proper frame, some of the values in the :c:data:`code_units` struct
+are expected to change with expansion factor (or redshift) while some
+others should remain constant. Units that should remain constant
+include :c:data:`time_units` and :c:data:`a_units`. Units that should
+vary are :c:data:`a_value` (obviously), :c:data:`length_units`, and
+:c:data:`density_units`. Moving forward in time,
+:c:data:`length_units` should be increasing proportional to
+:c:data:`a_value` and :c:data:`density_units` should be decreasing as
+:c:data:`a_value`:sup:`-3`.
+
+There are two important corollaries of the above behavior. First, the
+:c:data:`velocity_units` should remain constant. In comoving
+coordinates, velocity units are given by
+
+.. math::
+
+   VU = \frac{LU}{a\ TU},
+
+where VU is :c:data:`velocity_units`, a is :c:data:`a_value`, and TU
+is :c:data:`time_units`. Second, the internal unit for the cooling
+rate (equivalent to [erg s\ :sup:`-1` cm\ :sup:`+3`]) should remain
+constant. The cooling unit (CU) is given by
+
+.. math::
+
+   CU = \frac{VU^2\ m_H^2}{DU\ a^3\ TU},
+
+where DU is :c:data:`density_units` and m\ :sub:`H` is the hydrogen
+mass. The above definitions also hold for proper coordinates by
+setting a to 1.
+
+.. _setup_data-storage:
 
 Chemistry Data
 --------------
@@ -261,6 +319,8 @@ will return an integer indicating success (1) or failure (0).
 
 The Grackle is now ready to be used.
 
+As an aside, see :ref:`dynamic-api` for a description of an alternative approach for configuring a :c:type:`chemistry_data` struct. This other approach may provide additional compatability with multiple versions of Grackle, and in some cases may facillitate less-verbose, easier-to-maintain code.
+
 .. _openmp:
 
 Running with OpenMP
@@ -293,6 +353,30 @@ As of version 3.0, the various density and energy fields are passed to
 Grackle's functions using a struct of type :c:data:`grackle_field_data`.
 The struct contains information about the size and shape of the field arrays
 and pointers to all field arrays.
+
+.. _density-note:
+
+Note on Density Fields
+^^^^^^^^^^^^^^^^^^^^^^
+
+All density fields provided to Grackle should be mass densities, i.e.,
+the number density of a given species multiplied by its mass. The
+units should be such that the field value multiplied by
+:c:data:`density_units` results in a value with units of g/cm\
+:sup:`3`. See :ref:`code-units` for further discussion of Grackle unit
+systems.
+
+.. _e-density-note:
+
+Note on the Electron Density Field
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For largely historical reasons, the value of the electron density
+(provided in :c:data:`e_density`) should be the true value of the
+electron mass density multiplied by the ratio of the proton mass to
+the electron mass, i.e., :c:data:`e_density` = :math:`{\rho}`\ :sub:`e` * m\
+:sub:`p` / m\ :sub:`e`, where :math:`{\rho}`\ :sub:`e` is the true
+electron mass density in :c:data:`density_units` (see :ref:`density-note`).
 
 .. c:type:: grackle_field_data
 
@@ -330,7 +414,7 @@ and pointers to all field arrays.
 
 .. c:var:: gr_float* density
 
-   Pointer to the density field array.
+   Pointer to the gas density field array.
 
 .. c:var:: gr_float* HI_density
 
@@ -393,9 +477,8 @@ and pointers to all field arrays.
    Pointer to the electron density field array.  Used when
    :c:data:`primordial_chemistry` is set to 1, 2, or 3.  Note,
    the electron mass density should be scaled by the ratio of the
-   proton mass to the electron mass such that the electron density
-   in the code is the electron number density times the **proton**
-   mass.
+   proton mass to the electron mass. See :ref:`e-density-note` for
+   more information.
 
 .. c:var:: gr_float* metal_density
 
@@ -409,7 +492,10 @@ and pointers to all field arrays.
 
 .. c:var:: gr_float* internal_energy
 
-   Pointer to the internal energy field array.
+   Pointer to the internal energy field array. Internal energies should be
+   in units of :c:data:`velocity_units`\ :sup:`2` (velocity units squared).
+   This can be converted to and from a temperature by using the
+   :c:data:`get_temperature_units` function.
 
 .. c:var:: gr_float* x_velocity
 
@@ -434,6 +520,14 @@ and pointers to all field arrays.
    Pointer to values containing specific heating rates.  Rates
    should be in units of erg/s/g.  Used when
    :c:data:`use_specific_heating_rate` is set to 1.
+
+.. c:var:: gr_float* temperature_floor
+
+   Pointer to values containing a temperature floor for each element
+   in units of K. No chemistry or cooling calculations will be
+   performed on an element with a temperature at or below the
+   specified value. Used when :c:data:`use_temperature_floor` is
+   set to 2.
 
 .. c:var:: gr_float *RT_heating_rate
 
@@ -479,6 +573,12 @@ and pointers to all field arrays.
    H2\ :sub:`2`\ self-shielding.  Used when
    :c:data:`H2_self_shielding` is set to 2.  Field data
    should be in :c:data:`length_units`.
+
+.. c:var:: gr_float *H2_custom_shielding_factor
+
+   Pointer to a field containing attenuation factors to 
+   be multiplied with the H\ :sub:`2`\ dissociation rate.
+   Used when the :c:data:`H2_custom_shielding` flag is set.
 
 .. c:var:: gr_float *isrf_habing
 
@@ -561,13 +661,14 @@ not intend to use.
 Calling the Available Functions
 -------------------------------
 
-There are five functions available, one to solve the chemistry and cooling 
-and four others to calculate the cooling time, temperature, pressure, and the 
-ratio of the specific heats (gamma).  The arguments required are the 
-:c:data:`code_units` structure and the :c:data:`grackle_field_data` struct.
-For the chemistry solving routine, a timestep must also be given.  For the
-four field calculator routines, the array to be filled with the field values
-must be created and passed as an argument as well.
+There are six functions available, one to solve the chemistry and cooling
+and five others to calculate the cooling time, temperature, pressure,
+ratio of the specific heats (gamma), and dust temperature. The
+arguments required are the :c:data:`code_units` structure and the
+:c:data:`grackle_field_data` struct. For the chemistry solving
+routine, a timestep must also be given. For the four field calculator
+routines, the array to be filled with the field values must be created
+and passed as an argument as well.
 
 The examples below make use of Grackle's :ref:`primary_functions`, where
 the parameters and rate data are stored in instances of the
@@ -577,7 +678,7 @@ require these structs to be provided as arguments, allowing for explicitly
 thread-safe code.
 
 Solve the Chemistry and Cooling
-+++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: c++
 
@@ -590,7 +691,7 @@ Solve the Chemistry and Cooling
   }
 
 Calculating the Cooling Time
-++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: c++
 
@@ -603,7 +704,7 @@ Calculating the Cooling Time
   }
 
 Calculating the Temperature Field
-+++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: c++
 
@@ -616,7 +717,7 @@ Calculating the Temperature Field
   }
 
 Calculating the Pressure Field
-++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: c++
 
@@ -629,7 +730,7 @@ Calculating the Pressure Field
   }
 
 Calculating the Gamma Field
-+++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: c++
 
@@ -642,7 +743,7 @@ Calculating the Gamma Field
   }
 
 Calculating the Dust Temperature Field
-++++++++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: c++
 
@@ -654,11 +755,115 @@ Calculating the Dust Temperature Field
     return EXIT_FAILURE;
   }
 
-Cleaning the memory
+Clearing the memory
 -------------------
 
 .. code-block:: c++
 
-  _free_chemistry_data(my_grackle_data, &grackle_rates);
+  free_chemistry_data();
 
 Grackle is using global structures and therefore the global structure ``grackle_rates`` needs also to be released.
+
+Querying library version information
+------------------------------------
+
+A struct of type :c:data:`grackle_version` is used to hold version
+information about the version of Grackle that is being used. The
+struct contains information about the version number and particular
+git revision.
+
+.. c:type:: grackle_version
+
+   This structure is used to organize version information for the
+   library.
+
+.. c:var:: const char* version
+
+   Specifies the version of the library using this template:
+   ``<MAJOR>.<MINOR>(.<MICRO>)(.dev<DEV_NUM>)``. In this template
+   ``<MAJOR>``, ``<MINOR>``, and ``<MICRO>`` correspond to a major,
+   minor, and micro version numbers (the micro version number is
+   omitted if it's zero). The final section can specify a
+   development version. For concreteness, some example versions are
+   provided in increasing order: ``"3.0"``, ``"3.1"``, ``"3.1.1"``,
+   ``"3.1.2"``, ``"3.2.dev1"``, ``"3.2.dev2"``, ``"3.2"``.
+
+.. c:var:: const char* branch
+
+   Specifies the name of the git branch that the library was compiled
+   from.
+
+.. c:var:: const char* revision
+
+   Specifies the hash identifying the git commit that the library was
+   compiled from.
+
+The :c:func:`get_grackle_version` function is used to retrieve a
+properly intialized :c:data:`grackle_version` object. The following
+code snippet illustrates how one might query and print this
+information:
+
+.. code-block:: c++
+
+  grackle_version gversion = get_grackle_version();
+  printf ("The Grackle Version: %s\n", gversion.version);
+  printf ("Git Branch:   %s\n", gversion.branch);
+  printf ("Git Revision: %s\n", gversion.revision);
+
+.. _dynamic-api:
+
+Dynamic configuration of Chemistry Data
+---------------------------------------
+
+The functions providing dynamic access to the fields of :c:data:`chemistry_data` are useful for maintaining backwards compatibility with older versions of Grackle (that also provide this API) as new fields get added to :c:data:`chemistry_data`. This is exemplified in the following scenario.
+
+Suppose Grackle is updated to have a new heating/cooling mechanism, and to allow users to control that mechanism two new fields are added to :c:data:`chemistry_data`:
+   * an ``int`` field called ``use_fancy_feature``
+   * a ``double`` field called ``fancy_feature_param``
+
+Now suppose a downstream simulation code, written in ``c`` or ``c++``, wanted to support configuration of this feature. In this scenario, imagine that we have a pointer to a :c:data:`chemistry_data` structure called ``my_grackle_data``.
+
+The obvious way to configure this feature is to include the following snippet in the simulation code:
+
+.. code-block:: c++
+
+  if (configure_fancy_feature) {
+    my_grackle_data->use_fancy_feature = 1;
+    my_grackle_data->fancy_feature_param = 5.0; // arbitrary value
+  }
+
+However, inclusion of the above snippet will prevent the simulation code from compiling if the user has a version of Grackle installed in which :c:data:`chemistry_data` does not have the ``use_fancy_feature`` and ``fancy_feature_param`` fields. Consequently, such users will have to update Grackle.
+
+  * This can be inconvenient when a user has no interest in using this new feature, but needs an unrelated feature/bugfix introduced to the code in a subsequent changeset
+
+  * This is especially inconvenient if a user is prototying a new feature in a custom Grackle branch in which the :c:data:`chemistry_data` struct is missing these fields.
+
+The following snippet shows how the dynamic access API can be used in the same way for versions of Grackle that include these parameters, and don't set the features in cases 
+
+.. code-block:: c++
+
+  if (configure_fancy_feature) {
+    int* use_fancy_feature = local_chemistry_data_access_int(
+      my_grackle_data, "use_fancy_feature"
+    );
+    double* fancy_feature_param = local_chemistry_data_access_double(
+      my_grackle_data, "fancy_feature_param"
+    );
+
+    if ((use_fancy_feature == NULL) || (fancy_feature_param == NULL)){
+      fprintf(stderr, "Update grackle version to use fancy feature\n");
+    } else {
+      *use_fancy_feature = 1;
+      *fancy_feature_param = 5.0;
+    }
+  }
+
+There are a few points worth noting:
+
+  * As the above snippets show, the dynamic api clearly produces more verbose code when configuring :c:data:`chemistry_data` field-by-field. However, in codes where users configure Grackle by specifying the name of fields in the :c:data:`chemistry_data` struct and the associated values in a parameter file, the dynamic API can facillitate MUCH less verbose code. Under certain implementations, it may not even be necessary to modify a simulation code to support newly-introduced grackle parameters.
+
+  * The dynamic API is slower than configuring :c:data:`chemistry_data` in the classic approach. However, this shouldn't be an issue since :c:data:`chemistry_data` is usually just configured once when the simulation code starts up.
+
+  * The highlighted functions can also be used in tandem with other functions described in :ref:`dynamic_api_functions` to simplify (de)serialization of :c:data:`chemistry_data`.
+
+  * For completeness, the dynamic API also provides an analogous function for configuring string parameters.

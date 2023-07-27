@@ -9,7 +9,8 @@
      &                in, jn, kn, nratec, iexpand, 
      &                ispecies, imetal, imcool, idust,
      &                idustall, idustfield, idim,
-     &                is, js, ks, ie, je, ke, ih2co, ipiht, igammah,
+     &                is, js, ks, ie, je, ke, ih2co, ipiht, idustrec,
+     &                igammah,
      &                dx, dt, aye, temstart, temend, 
      &                utem, uxyz, uaye, urho, utim,
      &                gamma, fh, dtoh, z_solar, fgr,
@@ -45,6 +46,7 @@
      &                metPar1, metPar2, metPar3, metPar4, metPar5,
      &                metDataSize, metCooling, metHeating, clnew,
      &                iVheat, iMheat, Vheat, Mheat,
+     &                iTfloor, Tfloor_scalar, Tfloor,
      &                iisrffield, isrf_habing,
      &                iDustEvol, dust_destruction_eff,
      &                sne_coeff, sne_shockspeed, dust_grainsize,
@@ -53,7 +55,9 @@
      &                met1, met2, met3, met4, met5, met6,
      &                met7, met8, met9, met10,
      &                dmet1, dmet2, dmet3, dmet4, dmet5, dmet6,
-     &                dmet7, dmet8, dmet9, dmet10, sne)
+     &                dmet7, dmet8, dmet9, dmet10, sne,
+     &                iH2shieldcustom, f_shield_custom,
+     &                itmax, exititmax)
 
 !
 !  SOLVE MULTI-SPECIES RATE EQUATIONS AND RADIATIVE COOLING
@@ -87,6 +91,7 @@
 !    dust     - dust density field
 !    kph*     - photoionization fields
 !    gamma*   - photoheating fields
+!    f_shield_custom - custom H2 shielding factor
 !
 !    is,ie    - start and end indices of active region (zero based)
 !    iexpand  - comoving coordinates flag (0 = off, 1 = on)
@@ -100,6 +105,7 @@
 !    iisrffield - flag if a field for the interstellar radiation field is present
 !    ih2co    - flag to include H2 cooling (1 = on, 0 = off)
 !    ipiht    - flag to include photoionization heating (1 = on, 0 = off)
+!    idustrec - flag to include dust recombination cooling (1 = on, -1 = off)
 !    iH2shield - flag for approximate self-shielding of H2 (Wolcott-Green+ 2011)
 !    iradshield - flag for approximate self-shielding of UV background
 !    avgsighi   - spectrum averaged ionization crs for HI for use with shielding
@@ -109,6 +115,7 @@
 !    iradcoupled - flag to indicate coupled radiative transfer
 !    iradstep  - flag to indicate intermediate coupled radiative transfer timestep
 !    irt_honly - flag to indicate applying RT ionization and heating to HI only
+!    iH2shieldcustom - flag to indicate a custom H2 shielding factor is provided
 
 !    fh       - Hydrogen mass fraction (typically 0.76)
 !    dtoh     - Deuterium to H mass ratio
@@ -147,6 +154,11 @@
 !    iMheat      - flag for using specific heating rate
 !    Vheat       - array of volumetric heating rates
 !    Mheat       - array of specific heating rates
+!    iTfloor     - flag for using temperature floor field
+!    Tfloor_scalar - scalar temperature floor value
+!    Tfloor      - array of temperature floor values
+!    itmax       - maximum allowed sub-cycle iterations
+!    exititmax   - flag to exit if max iterations exceeded
 !
 !    iDustEvol   - flag for using dust growth and destruction
 !    SolarAbd    - solar element abundances
@@ -158,7 +170,6 @@
 !    update chemical rate densities (HI, HII, etc)
 !
 !  PARAMETERS:
-!    itmax   - maximum allowed sub-cycle iterations
 !    mh      - H mass in cgs units
 !
 !-----------------------------------------------------------------------
@@ -173,15 +184,17 @@
 
       integer icool, in, jn, kn, is, js, ks, ie, je, ke, nratec, 
      &        iexpand, ih2co, ipiht, ispecies, imetal, idim,
-     &        ierr, imcool, idust, idustall, idustfield,
+     &        ierr, imcool, idust, idustall, idustfield, idustrec,
      &        igammah, ih2optical, iciecool, ithreebody,
-     &        ndratec, clnew, iVheat, iMheat, iH2shield, iradshield,
+     &        ndratec, clnew, iVheat, iMheat, iTfloor,
+     &        iH2shield, iradshield,
      &        iradtrans, iradcoupled, iradstep, irt_honly,
      &        iisrffield, ifdust, iDustEvol
+     &        iH2shieldcustom, itmax, exititmax
 
       real*8  dx, dt, aye, temstart, temend, gamma,
      &        utim, uxyz, uaye, urho, utem, fh, dtoh, z_solar, 
-     &        fgr, dtemstart, dtemend, clEleFra
+     &        fgr, dtemstart, dtemend, clEleFra, Tfloor_scalar
 
 !  Dust evolution parameters
       
@@ -199,7 +212,7 @@
      &        d(in,jn,kn),     e(in,jn,kn),
      &        u(in,jn,kn),    v(in,jn,kn),     w(in,jn,kn),
      &        metal(in,jn,kn), dust(in,jn,kn),
-     &        Vheat(in,jn,kn), Mheat(in,jn,kn)
+     &        Vheat(in,jn,kn), Mheat(in,jn,kn), Tfloor(in,jn,kn)
 
 !  Radiative transfer fields
 
@@ -225,6 +238,10 @@
      &        dmet10(in,jn,kn), dmet11(in,jn,kn),
      &        metpt(NUM_METAL_SPECIES_GRACKLE+1),
      &        dmetpt(NUM_METAL_SPECIES_GRACKLE+1)
+
+!  Custom H2 shielding factor
+
+      R_PREC f_shield_custom(in, jn, kn)
 
 !  Cooling tables (coolings rates as a function of temperature)
 
@@ -275,15 +292,12 @@
 
 !  Parameters
 
-      integer itmax
-      parameter (itmax = 10000)
-
-#ifdef CONFIG_BFLOAT_4
+#ifdef GRACKLE_FLOAT_4
       R_PREC tolerance
       parameter (tolerance = 1.0e-05_RKIND)
 #endif
 
-#ifdef CONFIG_BFLOAT_8
+#ifdef GRACKLE_FLOAT_8
       R_PREC tolerance
       parameter (tolerance = 1.0e-10_RKIND)
 #endif
@@ -362,7 +376,7 @@
 
 !     Set error indicator
 
-      ierr = 0
+      ierr = 1
 
 !     Set flag for dust-related options
 
@@ -375,9 +389,8 @@
       xbase1   = uxyz/(aye*uaye)    ! uxyz is [x]*a      = [x]*[a]*a'        '
       dbase1   = urho*(aye*uaye)**3 ! urho is [dens]/a^3 = [dens]/([a]*a')^3 '
       coolunit = (uaye**5 * xbase1**2 * mh**2) / (tbase1**3 * dbase1)
-      uvel     = uxyz / utim
-c      chunit = (7.17775e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 4.5 eV per H2 formed
-      chunit = (1.60218e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 1 eV per H2 formed
+      uvel = (uxyz/aye) / utim
+      chunit   = (1.60218e-12_DKIND)/(2._DKIND*uvel*uvel*mh)   ! 1 eV per H2 formed
 
       dx_cgs = dx * xbase1
       c_ljeans = sqrt((gamma * pi * kboltz) /
@@ -528,7 +541,7 @@ c        Check that the total metal mass is conserved over all subcycles
      &                d, e, u, v, w, de, HI, HII, HeI, HeII, HeIII,
      &                in, jn, kn, nratec, 
      &                iexpand, ispecies, imetal, imcool,
-     &                idust, idustall, idustfield,
+     &                idust, idustall, idustfield, idustrec,
      &                idim, is, ie, j, k, ih2co, ipiht, iter, igammah,
      &                aye, temstart, temend, z_solar, fgr,
      &                utem, uxyz, uaye, urho, utim,
@@ -563,6 +576,7 @@ c        Check that the total metal mass is conserved over all subcycles
      &                metPar1, metPar2, metPar3, metPar4, metPar5,
      &                metDataSize, metCooling, metHeating, clnew,
      &                iVheat, iMheat, Vheat, Mheat,
+     &                iTfloor, Tfloor_scalar, Tfloor,
      &                iisrffield, isrf_habing, itmask)
             
             do i = is+1, ie+1
@@ -605,7 +619,8 @@ c        Check that the total metal mass is conserved over all subcycles
      &               k31shield, h2dust, ncrn, ncrd1, ncrd2, 
      &               t1, t2, tdef, logtem, indixe, 
      &               dom, coolunit, tbase1, xbase1, dx_cgs, c_ljeans,
-     &               iradtrans, kdissH2I, xH2shield, itmask)
+     &               iradtrans, kdissH2I, xH2shield, iH2shieldcustom, 
+     &               f_shield_custom,  itmask)
 
 !           Compute dedot and HIdot, the rates of change of de and HI
 !             (should add itmask to this call)
@@ -688,7 +703,8 @@ c        Check that the total metal mass is conserved over all subcycles
      &              0.1_DKIND*tau_sput(i))
 
                if (d(i,j,k)*dom .gt. 1e8_DKIND .and. 
-     &              edot(i) .gt. 0._DKIND) then
+     &              edot(i) .gt. 0._DKIND      .and.
+     &             ispecies .gt. 1) then
 !              Equilibrium value for H is:
 !              H = (-1._DKIND / (4*k22)) * (k13 - sqrt(8 k13 k22 rho + k13^2))
 !              We now want this to change by 10% or less, but we're only
@@ -1029,6 +1045,10 @@ c        Check total metal mass was conserved over all subcycles
             write(0,'((16(1pe8.1)))') (ttot(i),i=is+1,ie+1)
             write(0,'((16(1pe8.1)))') (edot(i),i=is+1,ie+1)
             write(0,'((16(l3)))') (itmask(i),i=is+1,ie+1)
+
+            if (exititmax .eq. 1) then
+               ierr = 0
+            endif
 #ifdef _OPENMP
 !$omp end critical
 #endif
@@ -1051,6 +1071,12 @@ c            WARNING_MESSAGE
 #ifdef _OPENMP
 !$omp end parallel do
 #endif
+
+!     If an error has been produced, return now.
+
+      if (ierr .eq. 0) then
+         return
+      endif
 
 !     Convert densities back to comoving from proper
 
@@ -1383,25 +1409,13 @@ c -------------------------------------------------------------------
          do k = ks+1, ke+1
             do j = js+1, je+1
                do i = is+1, ie+1
-
+                  metal(i,j,k) = max(metal(i,j,k), tiny)
                   if (metal(i,j,k) .gt. d(i,j,k)) then
-                     write(*,*) "metal density greater than total ",
-     &               "(pre-modification) in ceiling_species"
-                     write(*,*) "metal density = ", metal(i,j,k)
-                     write(*,*) "total density = ", d(i,j,k)
+                     write(6, *) 'WARNING: metal density exceeds ',
+     &                    'total density!'
+                     write(6, *) 'i, j, k, metal, density = ',
+     &                    i, j, k, metal(i,j,k), d(i,j,k)
                   endif
-
-                  metal(i,j,k) = min(max(metal(i,j,k), tiny),
-     &                 0.9_RKIND*d(i,j,k))
-
-                  if (metal(i,j,k) .gt. d(i,j,k)) then
-                     write(*,*) "metal density greater than total ",
-     &               "(post-modification) in ceiling_species"
-                     write(*,*) "metal density = ", metal(i,j,k)
-                     write(*,*) "total density = ", d(i,j,k)
-                     call exit(66)
-                  endif
-
                enddo
             enddo
          enddo
@@ -1439,7 +1453,8 @@ c -------------------------------------------------------------------
      &                h2dust, ncrn, ncrd1, ncrd2,
      &                t1, t2, tdef, logtem, indixe, 
      &                dom, coolunit, tbase1, xbase1, dx_cgs, c_ljeans,
-     &                iradtrans, kdissH2I, xH2shield, itmask)
+     &                iradtrans, kdissH2I, xH2shield, iH2shieldcustom, 
+     &                f_shield_custom, itmask)
 ! -------------------------------------------------------------------
 
       implicit NONE
@@ -1449,7 +1464,8 @@ c -------------------------------------------------------------------
 
       integer is, ie, nratec,
      &        in, jn, kn, ispecies, ithreebody, j, k,
-     &        ndratec, iH2shield, iradshield, iradtrans
+     &        ndratec, iH2shield, iradshield, iradtrans, 
+     &        iH2shieldcustom
       real*8 temstart, temend, tgas1d(in), mmw(in), dom,
      &       dtemstart, dtemend
       real*8 coolunit, tbase1, xbase1, dx_cgs, c_ljeans
@@ -1484,6 +1500,10 @@ c -------------------------------------------------------------------
 !     H2 self-shielding length-scale field
 
       R_PREC  xH2shield(in,jn,kn)
+
+!  Custom H2 shielding factor
+
+      R_PREC f_shield_custom(in, jn, kn)
 
 !     Returned rate values
 
@@ -1525,6 +1545,10 @@ c -------------------------------------------------------------------
      &       d_logtem0, d_logtem9, d_dlogtem, divrho, N_H2,
      &       f_shield, b_doppler, l_H2shield
       real*8 k13_CID, k13_DT
+
+!     locals for H2 self-shielding as WG+19
+
+      real*8 tgas_touse, ngas_touse, aWG2019
 
       real*8 nSSh, nratio
 
@@ -1779,16 +1803,44 @@ c -------------------------------------------------------------------
 
                N_H2 = dom*H2I(i,j,k) * l_H2shield
 
+! update: self-shielding following Wolcott-Green & Haiman (2019)
+! range of validity: T=100-8000 K, n<=1e7 cm^-3
+
+               tgas_touse = max(tgas1d(i),1E2_DKIND)
+               tgas_touse = min(tgas_touse,8E3_DKIND)
+               ngas_touse = d(i,j,k) * dom / mmw(i)
+               ngas_touse = min(ngas_touse,1E7_DKIND)
+
+               aWG2019 = (0.8711_DKIND *
+     &              log10(tgas_touse) - 1.928_DKIND) *
+     &              exp(-0.2856_DKIND * log10(ngas_touse)) +
+     &              (-0.9639_DKIND * log10(tgas_touse) + 3.892_DKIND)
+
                x = 2.0E-15_DKIND * N_H2
                b_doppler = 1E-5_DKIND *
      &                 sqrt(2._DKIND * kboltz *
      &                      tgas1d(i) / mass_h)
-               f_shield = 0.965_DKIND / (1._DKIND + x/b_doppler)**1.1+
-     &           0.035_DKIND * exp(-8.5E-4_DKIND * sqrt(1._DKIND +x))/
-     &           sqrt(1._DKIND + x)
+               f_shield = 0.965_DKIND /
+     &              (1._DKIND + x/b_doppler)**aWG2019 +
+     &              0.035_DKIND * exp(-8.5e-4_DKIND *
+     &              sqrt(1._DKIND + x)) /
+     &              sqrt(1._DKIND + x)
+
+! avoid f>1
+               f_shield = min(f_shield, 1._DKIND)
+
                k31shield(i) = f_shield * k31shield(i)
             endif
          enddo
+      endif
+
+!     Custom H2 shielding
+      if (iH2shieldcustom .gt. 0) then
+        do i = is+1, ie+1
+            if (itmask(i)) then
+              k31shield(i) = f_shield_custom(i,j,k) * k31shield(i)
+            endif
+        enddo
       endif
       endif
 

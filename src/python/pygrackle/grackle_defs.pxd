@@ -1,71 +1,15 @@
+cdef extern from "grackle_macros.h":
+    cdef int GRACKLE_FAIL_VALUE "FAIL"
+
 cdef extern from "grackle_types.h":
     # This does not need to be exactly correct, only of the right basic type
     ctypedef float gr_float
 
 cdef extern from "grackle_chemistry_data.h":
     ctypedef struct c_chemistry_data "chemistry_data":
-        int use_grackle
-        int with_radiative_cooling
-        int primordial_chemistry
-        int dust_chemistry
-        int metal_cooling
-        int UVbackground
-        char *grackle_data_file
-        int cmb_temperature_floor
-        double Gamma
-        int h2_on_dust
-        int use_dust_density_field
-        int photoelectric_heating
-        double photoelectric_heating_rate
-        int use_isrf_field
-        double interstellar_radiation_field
-        int use_volumetric_heating_rate
-        int use_specific_heating_rate
-        int three_body_rate
-        int cie_cooling
-        int h2_optical_depth_approximation
-        int ih2co
-        int ipiht
-        int h2_charge_exchange_rate
-        int h2_dust_rate
-        int h2_h_cooling_rate
-        int collisional_excitation_rates
-        int collisional_ionisation_rates
-        int recombination_cooling_rates
-        int bremsstrahlung_cooling_rates
-        double HydrogenFractionByMass
-        double DeuteriumToHydrogenRatio
-        double SolarMetalFractionByMass
-        double local_dust_to_gas_ratio
-        int NumberOfTemperatureBins
-        int CaseBRecombination
-        double TemperatureStart
-        double TemperatureEnd
-        int NumberOfDustTemperatureBins
-        double DustTemperatureStart
-        double DustTemperatureEnd
-        int Compton_xray_heating
-        int LWbackground_sawtooth_suppression
-        double LWbackground_intensity
-        double UVbackground_redshift_on
-        double UVbackground_redshift_off
-        double UVbackground_redshift_fullon
-        double UVbackground_redshift_drop
-        double cloudy_electron_fraction_factor
-        int use_radiative_transfer
-        int radiative_transfer_coupled_rate_solver
-        int radiative_transfer_intermediate_step
-        int radiative_transfer_hydrogen_only
-        int self_shielding_method
-        int H2_self_shielding
-        int use_dust_evol
-        double dust_destruction_eff
-        double sne_coeff
-        double sne_shockspeed
-        double dust_grainsize
-        double dust_growth_densref
-        double dust_growth_tauref
-        double SolarAbundances[10]
+        # no need to declare the members since there is no cython code that
+        # directly accesses the struct members (dynamic api is used instead)
+        pass
 
     ctypedef struct c_chemistry_data_storage "chemistry_data_storage":
         double *k1
@@ -215,6 +159,7 @@ cdef extern from "grackle_types.h":
       gr_float *z_velocity;
       gr_float *volumetric_heating_rate;
       gr_float *specific_heating_rate;
+      gr_float *temperature_floor;
       gr_float *RT_heating_rate;
       gr_float *RT_HI_ionization_rate;
       gr_float *RT_HeI_ionization_rate;
@@ -244,12 +189,44 @@ cdef extern from "grackle_types.h":
       gr_float *Fe_dust_metalDensity;
       gr_float *SNe_ThisTimeStep;
 
-cdef extern from "grackle.h":
-    c_chemistry_data _set_default_chemistry_parameters()
+    ctypedef struct c_grackle_version "grackle_version":
+      const char* version;
+      const char* branch;
+      const char* revision;
 
-    int _initialize_chemistry_data(c_chemistry_data *my_chemistry,
-                                   c_chemistry_data_storage *my_rates,
-                                   c_code_units *my_units)
+# define a macro to omit legacy grackle function defined in grackle.h
+cdef extern from *:
+    """
+    #define OMIT_LEGACY_INTERNAL_GRACKLE_FUNC
+    """
+
+cdef extern from "grackle.h":
+    int local_initialize_chemistry_parameters(c_chemistry_data *my_chemistry)
+
+    void set_velocity_units(c_code_units *my_units)
+
+    double get_velocity_units(c_code_units *my_units)
+
+    double get_temperature_units(c_code_units *my_units)
+
+    int local_initialize_chemistry_data(c_chemistry_data *my_chemistry,
+                                        c_chemistry_data_storage *my_rates,
+                                        c_code_units *my_units)
+
+    int* local_chemistry_data_access_int(c_chemistry_data *my_chemistry,
+                                         const char* param_name)
+
+    double* local_chemistry_data_access_double(c_chemistry_data *my_chemistry,
+                                               const char* param_name)
+
+    char** local_chemistry_data_access_string(c_chemistry_data *my_chemistry,
+                                              const char* param_name)
+
+    const char* param_name_int(unsigned int i)
+
+    const char* param_name_double(unsigned int i)
+
+    const char* param_name_string(unsigned int i)
 
     int c_local_solve_chemistry "local_solve_chemistry"(
                 c_chemistry_data *my_chemistry,
@@ -292,3 +269,9 @@ cdef extern from "grackle.h":
                 c_code_units *my_units,
                 c_field_data *my_fields,
                 gr_float *dust_temperature)
+
+    int c_local_free_chemistry_data "local_free_chemistry_data" (
+        c_chemistry_data *my_chemistry,
+        c_chemistry_data_storage *my_rates)
+
+    c_grackle_version c_get_grackle_version "get_grackle_version"()

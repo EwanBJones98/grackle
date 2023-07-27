@@ -23,6 +23,8 @@ extern chemistry_data_storage grackle_rates;
 
 /* function prototypes */
 
+double get_temperature_units(code_units *my_units);
+
 int update_UVbackground_rates(chemistry_data *my_chemistry,
                               chemistry_data_storage *my_rates,
                               photo_rate_storage *my_uvb_rates,
@@ -36,7 +38,7 @@ extern void FORTRAN_NAME(solve_rate_cool_g)(
         int *ispecies, int *imetal, int *imcool, int *idust, int *idustall,
         int *idustfield, int *idim,
 	int *is, int *js, int *ks, int *ie, int *je, int *ke,
-        int *ih2co, int *ipiht, int *igammah,
+        int *ih2co, int *ipiht, int *idustrec, int *igammah,
 	double *dx, double *dt, double *aye, double *temstart, double *temend,
 	double *utem, double *uxyz, double *uaye, double *urho, double *utim,
 	double *gamma, double *fh, double *dtoh, double *z_solar, double *fgr,
@@ -82,6 +84,7 @@ extern void FORTRAN_NAME(solve_rate_cool_g)(
  	long long *metDataSize, double *metCooling,
         double *metHeating, int *clnew,
         int *iVheat, int *iMheat, gr_float *Vheat, gr_float *Mheat,
+        int *iTfloor, gr_float *Tfloor_scalar, gr_float *Tfloor, 
         int *iisrffield, gr_float* isrf_habing,
         int *iDustEvol, double *dust_destruction_eff,
         double *sne_coeff, double *sne_shockspeed,
@@ -94,8 +97,9 @@ extern void FORTRAN_NAME(solve_rate_cool_g)(
         gr_float *dmet1, gr_float *dmet2, gr_float *dmet3,
         gr_float *dmet4, gr_float *dmet5, gr_float *dmet6,
         gr_float *dmet7, gr_float *dmet8, gr_float *dmet9,
-        gr_float *dmet10,
-        gr_float *sne);
+        gr_float *dmet10, gr_float *sne,
+        int *iH2shieldcustom, gr_float* f_shield_custom,
+        int *itmax, int *exititmax);
 
 int local_solve_chemistry(chemistry_data *my_chemistry,
                           chemistry_data_storage *my_rates,
@@ -175,7 +179,7 @@ int local_solve_chemistry(chemistry_data *my_chemistry,
 
   /* Calculate temperature units. */
 
-  double temperature_units =  mh * POW(my_units->velocity_units, 2) / kboltz;
+  double temperature_units = get_temperature_units(my_units);
 
   /* Call the fortran routine to solve cooling equations. */
 
@@ -214,6 +218,7 @@ int local_solve_chemistry(chemistry_data *my_chemistry,
     my_fields->grid_end+2,
     &my_chemistry->ih2co,
     &my_chemistry->ipiht,
+    &my_chemistry->dust_recombination_cooling,
     &my_chemistry->photoelectric_heating,
     &(my_fields->grid_dx),
     &dt_value,
@@ -370,6 +375,9 @@ int local_solve_chemistry(chemistry_data *my_chemistry,
     &my_chemistry->use_specific_heating_rate,
     my_fields->volumetric_heating_rate,
     my_fields->specific_heating_rate,
+    &my_chemistry->use_temperature_floor,
+    &my_chemistry->temperature_floor_scalar,
+    my_fields->temperature_floor,
     &my_chemistry->use_isrf_field,
     my_fields->isrf_habing,
     &my_chemistry->use_dust_evol,
@@ -400,9 +408,17 @@ int local_solve_chemistry(chemistry_data *my_chemistry,
     my_fields->S_dust_metalDensity,
     my_fields->Ca_dust_metalDensity,
     my_fields->Fe_dust_metalDensity,
-    my_fields->SNe_ThisTimeStep);
+    my_fields->SNe_ThisTimeStep,
+    &my_chemistry->H2_custom_shielding,
+    my_fields->H2_custom_shielding_factor,
+    &my_chemistry->max_iterations,
+    &my_chemistry->exit_after_iterations_exceeded);
 
-  return SUCCESS;
+  if (ierr == FAIL) {
+    fprintf(stderr, "Error in solve_rate_cool_g.\n");
+  }
+
+  return ierr;
 
 }
 

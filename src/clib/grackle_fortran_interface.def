@@ -66,6 +66,8 @@ c     This is the fortran definition of grackle_field_data
          TYPE(C_PTR) :: volumetric_heating_rate
          TYPE(C_PTR) :: specific_heating_rate
 
+         TYPE(C_PTR) :: temperature_floor
+
          TYPE(C_PTR) :: RT_heating_rate
          TYPE(C_PTR) :: RT_HI_ionization_rate
          TYPE(C_PTR) :: RT_HeI_ionization_rate
@@ -115,12 +117,15 @@ c     This is the fortran definition of grackle_chemistry_data
          REAL(C_DOUBLE) :: Gamma
          INTEGER(C_INT) :: h2_on_dust
          INTEGER(C_INT) :: use_dust_density_field
+         INTEGER(C_INT) :: dust_recombination_cooling
          INTEGER(C_INT) :: photoelectric_heating
          REAL(C_DOUBLE) :: photoelectric_heating_rate
          INTEGER(C_INT) :: use_isrf_field
          REAL(C_DOUBLE) :: interstellar_radiation_field
          INTEGER(C_INT) :: use_volumetric_heating_rate
          INTEGER(C_INT) :: use_specific_heating_rate
+         INTEGER(C_INT) :: use_temperature_floor
+         REAL(C_DOUBLE) :: temperature_floor_scalar
          INTEGER(C_INT) :: three_body_rate
          INTEGER(C_INT) :: cie_cooling
          INTEGER(C_INT) :: h2_optical_depth_approximation
@@ -151,6 +156,7 @@ c     This is the fortran definition of grackle_chemistry_data
          INTEGER(C_INT) :: radiative_transfer_hydrogen_only
          INTEGER(C_INT) :: self_shielding_method
          INTEGER(C_INT) :: H2_self_shielding
+         INTEGER(C_INT) :: H2_custom_shielding
          INTEGER(C_INT) :: h2_charge_exchange_rate
          INTEGER(C_INT) :: h2_dust_rate
          INTEGER(C_INT) :: h2_h_cooling_rate
@@ -158,10 +164,35 @@ c     This is the fortran definition of grackle_chemistry_data
          INTEGER(C_INT) :: collisional_ionisation_rates
          INTEGER(C_INT) :: recombination_cooling_rates
          INTEGER(C_INT) :: bremsstrahlung_cooling_rates
+         INTEGER(C_INT) :: max_iterations
+         INTEGER(C_INT) :: exit_after_iterations_exceeded
 cc       INTEGER(C_INT) :: omp_nthreads // not supported in fortran
       END TYPE
 
 c     The following define the fortran interfaces to the C routines
+
+      INTERFACE
+         REAL(C_DOUBLE) FUNCTION get_temperature_units(my_units)
+     &        bind(C)
+            IMPORT
+            TYPE(grackle_units), INTENT(IN) :: my_units
+         END FUNCTION get_temperature_units
+      END INTERFACE
+
+      INTERFACE
+         REAL(C_DOUBLE) FUNCTION get_velocity_units(my_units)
+     &        bind(C)
+            IMPORT
+            TYPE(grackle_units), INTENT(IN) :: my_units
+         END FUNCTION get_velocity_units
+      END INTERFACE
+
+      INTERFACE
+         SUBROUTINE set_velocity_units(my_units) bind(C)
+            IMPORT
+            TYPE(grackle_units), INTENT(INOUT) :: my_units
+         END SUBROUTINE set_velocity_units
+      END INTERFACE
 
       INTERFACE
          INTEGER(C_INT) FUNCTION set_default_chemistry_parameters

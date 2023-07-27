@@ -54,7 +54,7 @@ typedef struct
   int UVbackground;
 
   /* data file containing cooling and UV background tables */
-  char *grackle_data_file;
+  const char *grackle_data_file;
 
   /* Use a CMB temperature floor
      0) no, 1) yes */
@@ -69,6 +69,9 @@ typedef struct
 
   /* Flag to supply a dust density field */
   int use_dust_density_field;
+
+  /* Flag for enabling recombination cooling on grains */
+  int dust_recombination_cooling;
 
   /* photo-electric heating from irradiated dust */
   int photoelectric_heating;
@@ -85,6 +88,14 @@ typedef struct
 
   int use_volumetric_heating_rate;
   int use_specific_heating_rate;
+
+  /* flag to use a field specifying a temperature floor */
+
+  int use_temperature_floor;
+
+  /* use to specify scalar temperature floor */
+
+  double temperature_floor_scalar;
 
   /* additional chemistry solver parameters */
   int three_body_rate;
@@ -138,6 +149,10 @@ typedef struct
      Please refer to the grackle documentation for specifics. */
   int H2_self_shielding;
 
+  /* flag for custom H2-shielding factor. The factor is provided as an additional field 
+     by the user and is multiplied to the rate for radiative H2 dissocitation */
+  int H2_custom_shielding;
+
   /* flag to select which formula for calculating k11 you want to use. 
      Setting to 1 will use Savin 2004, 2 will use Abel et al. 1996  */
   int h2_charge_exchange_rate;
@@ -166,17 +181,26 @@ typedef struct
   double dust_growth_densref;
   double dust_growth_tauref;
   double SolarAbundances[NUM_METAL_SPECIES_GRACKLE];
+  
+  /* maximum number of subcycle iterations for solve_chemistry */
+  int max_iterations;
+
+  /* flag to exit if max iterations exceeded */
+  int exit_after_iterations_exceeded;
 
   /* number of OpenMP threads, if supported */
-# ifdef _OPENMP
   int omp_nthreads;
-# endif
 
 } chemistry_data;
 
 /*****************************
  *** Cooling table storage ***
  *****************************/
+
+// this is an implementation detail that may change in the future. Always rely
+// upon the grid_rank value stored in cloudy_data
+#define GRACKLE_CLOUDY_TABLE_MAX_DIMENSION 5
+
 typedef struct
 {
 
@@ -184,10 +208,10 @@ typedef struct
   long long grid_rank;
 
   // Dimension of dataset.
-  long long *grid_dimension;
+  long long grid_dimension[GRACKLE_CLOUDY_TABLE_MAX_DIMENSION];
 
   // Dataset parameter values.
-  double **grid_parameters;
+  double *grid_parameters[GRACKLE_CLOUDY_TABLE_MAX_DIMENSION];
 
   // Heating values
   double *heating_data;

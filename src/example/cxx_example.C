@@ -46,10 +46,10 @@ int main(int argc, char *argv[])
   my_units.density_units = 1.67e-24;
   my_units.length_units = 128. * pc;
   my_units.time_units = 1.0e12;
-  my_units.velocity_units = my_units.length_units / my_units.time_units;
   my_units.a_units = 1.0; // units for the expansion factor
   // Set expansion factor to 1 for non-cosmological simulation.
   my_units.a_value = 1. / (1. + initial_redshift) / my_units.a_units;
+  set_velocity_units(&my_units);
 
   // Second, create a chemistry object for parameters.  This needs to be a pointer.
   chemistry_data *my_grackle_data;
@@ -193,9 +193,7 @@ int main(int argc, char *argv[])
   dust_metal_densities[9] = my_fields.Fe_dust_metalDensity;
 
   // set temperature units
-  double temperature_units = mh * pow(my_units.a_units * 
-                                      my_units.length_units /
-                                      my_units.time_units, 2) / kboltz;
+  double temperature_units = get_temperature_units(&my_units);
 
   double dt = 3.15e7 * 1e6 / my_units.time_units;
 
@@ -340,23 +338,7 @@ int main(int argc, char *argv[])
 
   fprintf(stderr, "dust_temperature = %g K.\n", dust_temperature[0]);
 
-  fprintf(stderr, "AFTER: %g, %g\n",
-          (my_fields.metal_density[0] / my_fields.density[0]),
-          (my_fields.dust_density[0]  / my_fields.density[0]));
-  fprintf(stderr, "AFTER: %g, %g\n",
-          (my_fields.metal_density[0] / my_fields.density[0]),
-          (my_fields.dust_density[0]  / my_fields.density[0]));
-  gmtot = dmtot = 0;
-  for (int f = 0;f < 10;f++) {
-    fprintf(stderr, "AFTER: %g, %g\n",
-            (gas_metal_densities[f][0] / my_fields.density[0]),
-            (dust_metal_densities[f][0] / my_fields.density[0]));
-    gmtot += gas_metal_densities[f][0];
-    dmtot += dust_metal_densities[f][0];
-  }
-  fprintf(stderr, "AFTER TOTALS: %g, %g, %g\n", gmtot, dmtot, (gmtot+dmtot));
-
-  _free_chemistry_data(my_grackle_data, &grackle_rates);
+  free_chemistry_data();
 
   return EXIT_SUCCESS;
 }
