@@ -10,6 +10,7 @@
 / The full license is in the file LICENSE, distributed with this 
 / software.
 ************************************************************************/
+#include "grackle_types.h"
 
 #ifndef __CHEMISTRY_DATA_H__
 #define __CHEMISTRY_DATA_H__

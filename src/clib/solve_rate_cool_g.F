@@ -189,7 +189,7 @@
      &        ndratec, clnew, iVheat, iMheat, iTfloor,
      &        iH2shield, iradshield,
      &        iradtrans, iradcoupled, iradstep, irt_honly,
-     &        iisrffield, ifdust, iDustEvol
+     &        iisrffield, ifdust, iDustEvol,
      &        iH2shieldcustom, itmax, exititmax
 
       real*8  dx, dt, aye, temstart, temend, gamma,
