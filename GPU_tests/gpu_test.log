@@ -1,0 +1,110 @@
+SHELL=/bin/bash
+CONDA_EXE=/home/ejones/codes/anaconda3/bin/conda
+_CE_M=
+__MODULES_LMALTNAME=gcc/12.2&gcc/default&gcc&as|gcc/latest
+CC_DIR=/usr/local/gcc/12.2.0
+CC_HOME=/usr/local/gcc/12.2.0
+PWD=/home/ejones/codes/grackle-GPU/GPU_tests
+LOGNAME=ejones
+XDG_SESSION_TYPE=tty
+CONDA_PREFIX=/home/ejones/codes/anaconda3/envs/analysis
+MODULESHOME=/usr/share/modules
+MANPATH=/home/ejones/local/man:/home/ejones/local/share/man:/usr/local/gcc/12.2.0/share/man:/home/ejones/local/man:/home/ejones/local/share/man::
+MOTD_SHOWN=pam
+__MODULES_SHARE_MANPATH=:1
+HOME=/home/ejones
+LANG=en_GB.UTF-8
+CONDA_PROMPT_MODIFIER=(analysis) 
+LC_TERMINAL=iTerm2
+DISK=/disk01/ejones
+SSH_CONNECTION=10.65.192.177 64191 129.215.175.32 22
+XDG_SESSION_CLASS=user
+TERM=xterm-256color
+_CE_CONDA=
+SPS_HOME=/home/ejones/local/fsps
+USER=ejones
+LIBRARY_PATH=/usr/local/gcc/12.2.0/lib64:/usr/local/gcc/12.2.0/lib
+CONDA_SHLVL=2
+LOADEDMODULES=gcc/12.2
+LC_TERMINAL_VERSION=3.4.19
+SHLVL=2
+XDG_SESSION_ID=98679
+CONDA_PYTHON_EXE=/home/ejones/codes/anaconda3/bin/python
+LD_LIBRARY_PATH=/home/ejones/local/lib:/home/ejones/lib:/usr/local/gcc/12.2.0/lib64:/usr/local/gcc/12.2.0/lib:/home/ejones/local/hdf5/serial/lib:/home/ejones/local/lib:/home/ejones/lib:/home/ejones/local/openmpi/lib
+XDG_RUNTIME_DIR=/run/user/10036
+SSH_CLIENT=10.65.192.177 64191 22
+CONDA_DEFAULT_ENV=analysis
+XDG_DATA_DIRS=/usr/share/gnome:/usr/local/share:/usr/share:/var/lib/snapd/desktop
+PATH=/home/ejones/local/bin:/home/ejones/local/sbin:/usr/local/gcc/12.2.0/bin:/home/ejones/local/openmpi/bin:/home/ejones/codes/anaconda3/envs/analysis/bin:/home/ejones/codes/anaconda3/condabin:/home/ejones/local/bin:/home/ejones/local/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/ejones/bin
+MODULEPATH=/etc/environment-modules/modules:/usr/share/modules/versions:/usr/share/modules/$MODULE_VERSION/modulefiles:/usr/share/modules/modulefiles:/usr/local/Modules/modulefiles:/usr/local/oneapi/modulefiles
+_LMFILES_=/usr/local/Modules/modulefiles/gcc/12.2
+DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/10036/bus
+SSH_TTY=/dev/pts/234
+CONDA_PREFIX_1=/home/ejones/codes/anaconda3
+CPATH=/usr/local/gcc/12.2.0/include
+OLDPWD=/home/ejones/codes/grackle-GPU/GPU_tests/Eric
+MODULES_CMD=/usr/lib/x86_64-linux-gnu/modulecmd.tcl
+BASH_FUNC_ml%%=() {  module ml "$@"
+}
+BASH_FUNC_module%%=() {  _module_raw "$@" 2>&1
+}
+BASH_FUNC__module_raw%%=() {  eval `/usr/bin/tclsh8.6 /usr/lib/x86_64-linux-gnu/modulecmd.tcl bash "$@"`;
+ _mlstatus=$?;
+ return $_mlstatus
+}
+_=/usr/bin/sbatch
+SLURM_CONF=/etc/slurm/slurm.conf
+SLURM_JOB_NAME=run_gpu_test.slurm
+SLURM_PRIO_PROCESS=0
+SLURM_SUBMIT_DIR=/home/ejones/codes/grackle-GPU/GPU_tests
+SLURM_SUBMIT_HOST=cuillin
+SLURM_CLUSTER_NAME=cuillin
+SLURM_JOB_ID=8959429
+SLURM_JOB_NUM_NODES=1
+SLURM_JOB_NODELIST=worker001
+SLURM_JOB_PARTITION=GPU
+SLURM_NODE_ALIASES=(null)
+SLURM_JOB_CPUS_PER_NODE=1
+ENVIRONMENT=BATCH
+HOSTNAME=worker001
+SLURM_JOBID=8959429
+SLURM_NNODES=1
+SLURM_NODELIST=worker001
+SLURM_TASKS_PER_NODE=1
+SLURM_MEM_PER_CPU=1024
+SLURM_JOB_ACCOUNT=users
+SLURM_JOB_QOS=normal
+SLURM_GPUS_ON_NODE=1
+SLURM_JOB_GPUS=0
+CUDA_VISIBLE_DEVICES=0
+ROCR_VISIBLE_DEVICES=0
+ZE_AFFINITY_MASK=0
+GPU_DEVICE_ORDINAL=0
+SLURM_TOPOLOGY_ADDR=worker001
+SLURM_TOPOLOGY_ADDR_PATTERN=node
+SLURM_CPUS_ON_NODE=1
+SLURM_TASK_PID=1524033
+SLURM_NODEID=0
+SLURM_PROCID=0
+SLURM_LOCALID=0
+SLURM_GTIDS=0
+SLURM_JOB_UID=10036
+SLURM_JOB_USER=ejones
+SLURM_WORKING_CLUSTER=cuillin:cuillin:6817:9728:101
+SLURM_JOB_GID=508
+SLURMD_NODENAME=worker001
+TMPDIR=/tmp
+HOSTTYPE=x86_64-linux
+VENDOR=unknown
+OSTYPE=linux
+MACHTYPE=x86_64
+GROUP=student
+HOST=worker001
+PAGER=more
+IDL_STARTUP=/home/ejones/idl/startup.pro
+student users
+Running with GPU offload.
+GPU active = 0, (0 means gpu IS being used)
+poop
+poopedy scoop
+poopedy scoop poop
