@@ -151,6 +151,24 @@ c_example: $(MODULES) c_example.o
          fi)
 
 #-----------------------------------------------------------------------
+# PENCIL BEAM TEST
+#-----------------------------------------------------------------------
+
+pencilBeamTest: $(MODULES) pencilBeamTest.o
+	@rm -f $@
+	@echo "Linking"
+	-@$(LD) $(LDFLAGS) -o pencilBeamTest pencilBeamTest.o $(LIBS) $(GRACKLE_LIB) >& $(OUTPUT)
+	@(if [ -e $@ ]; then \
+             echo "Success!"; \
+         else \
+             echo "$(LD) $(LDFLAGS) -o pencilBeamTest pencilBeamTest.o $(LIBS) $(GRACKLE_LIB)" >> temp1; \
+             cat temp1 $(OUTPUT) > temp2; \
+             rm -f temp1; \
+             mv -f temp2 $(OUTPUT); \
+             echo "Failed! See $(OUTPUT) for error messages"; \
+         fi)
+
+#-----------------------------------------------------------------------
 # FORTRAN EXAMPLE
 #-----------------------------------------------------------------------
 
