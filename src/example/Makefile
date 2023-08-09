@@ -157,7 +157,7 @@ c_example: $(MODULES) c_example.o
 pencilBeamTest: $(MODULES) pencilBeamTest.o
 	@rm -f $@
 	@echo "Linking"
-	-@$(LD) $(LDFLAGS) -o pencilBeamTest pencilBeamTest.o $(LIBS) $(GRACKLE_LIB) >& $(OUTPUT)
+	-@$(LD) $(LDFLAGS) -o pencilBeamTest pencilBeamTest.o -lm $(LIBS) $(GRACKLE_LIB) >& $(OUTPUT)
 	@(if [ -e $@ ]; then \
              echo "Success!"; \
          else \

@@ -1,0 +1,17 @@
+Function                      	Number of Iterations     	Array Size  	x-length  	y-length  	z-length  	Mean Time 	Standard Deviation  	Minimum Time	Maximum Time
+local_calculate_cooling_time  	100                      	131072      	131072    	1         	1         	0.352562  	0.000413            	0.351351      	0.360601      
+local_calculate_cooling_time  	100                      	131072      	65536     	2         	1         	0.305128  	0.003424            	0.300203      	0.312704      
+local_calculate_cooling_time  	100                      	131072      	32768     	4         	1         	0.277130  	0.000803            	0.275949      	0.278405      
+local_calculate_cooling_time  	100                      	131072      	8192      	16        	1         	0.261703  	0.000754            	0.260561      	0.264864      
+local_calculate_cooling_time  	100                      	131072      	2048      	64        	1         	0.212070  	0.000117            	0.211454      	0.213285      
+local_calculate_cooling_time  	100                      	131072      	512       	256       	1         	0.208337  	0.000339            	0.207395      	0.211055      
+local_calculate_cooling_time  	100                      	131072      	256       	512       	1         	0.208967  	0.000033            	0.208758      	0.212335      
+local_calculate_cooling_time  	100                      	131072      	64        	2048      	1         	0.213859  	0.000204            	0.213435      	0.215673      
+local_calculate_cooling_time  	100                      	131072      	1         	131072    	1         	0.569158  	0.000535            	0.565546      	0.571905      
+local_calculate_cooling_time  	100                      	131072      	1         	1         	131072    	0.567006  	0.001165            	0.563378      	0.571275      
+local_calculate_cooling_time  	100                      	131072      	512       	128       	2         	0.208016  	0.000951            	0.206276      	0.209656      
+local_calculate_cooling_time  	100                      	131072      	512       	32        	8         	0.208538  	0.000574            	0.207665      	0.212198      
+local_calculate_cooling_time  	100                      	131072      	512       	16        	16        	0.207370  	0.000249            	0.206891      	0.211955      
+local_calculate_cooling_time  	100                      	131072      	128       	32        	32        	0.210206  	0.000262            	0.209684      	0.212625      
+local_calculate_cooling_time  	100                      	131072      	512       	1         	256       	0.207246  	0.000171            	0.207047      	0.209723      
+local_calculate_cooling_time  	100                      	131072      	256       	1         	512       	0.208873  	0.000211            	0.208399      	0.209765      
