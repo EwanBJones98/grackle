@@ -128,7 +128,7 @@
       parameter (ti_max = 20)
 
 !  Locals
-
+      logical :: exists
       integer i, iter, ti, iradfield
       real*8 dom, qq, vibl, logtem0, logtem9, dlogtem, zr,
      &       comp1, comp2, 
@@ -138,7 +138,10 @@
      &       nH2, nother, nSSh, nratio, nssh_he, nratio_he,
      &       fSShHI, fSShHeI, pe_eps, pe_X, grbeta
       character(80) :: userinp 
-      integer nan_flag
+      integer nan_fla
+
+      integer itmax
+      parameter (itmax = 10000)
 
 !  Slice locals
  
@@ -166,6 +169,19 @@
 
 !\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\/////////////////////////////////
 !=======================================================================
+
+!     Open file for writing edot when maximum number of iterations is exceeded
+      if (iter .ge. itmax) then
+         inquire(file="grackle_cool1dmulti_fatalErrors.txt", exist=exists)
+         if (exists) then
+            OPEN(UNIT=98, FILE="grackle_cool1dmulti_fatalErrors.txt", STATUS="old",
+     &         POSITION="append", ACTION="write")
+         else
+            OPEN(UNIT=98, FILE="grackle_cool1dmulti_fatalErrors.txt", STATUS="new",
+     &         ACTION="write")
+         endif
+         write(98,*) "*****************************************"
+      endif
 
 !     Set flag for dust-related options
 
@@ -416,6 +432,10 @@
 
 !     Compute the cooling function
 
+         if (iter .ge. itmax) then
+            write(98,*) "collisional excitations + ionizations, Recombinations and Bremsstrahlung:"
+         endif
+
       do i = is+1, ie+1
          if ( itmask(i) ) then
          edot(i) = (
@@ -447,6 +467,7 @@
 
      &             )
 
+
          if (edot(i) .ne. edot(i)) then
 #ifdef _OPENMP
 !$omp critical
@@ -464,11 +485,23 @@
          end if
       enddo
 
+         do i = is+1, ie+1
+            if ( itmask(i) ) then
+               if (iter .ge. itmax) then
+                  write(98,*) "    edot = ", edot(i), "  (final)"
+               endif
+            endif
+         enddo
+
       endif
      
 !     --- H2 cooling ---
 
       if (ispecies .gt. 1) then
+
+         if (iter .ge. itmax) then
+            write(98,*) "H2 cooling:"
+         endif
 
 #define USE_GLOVER_ABEL2008
 #ifdef USE_GLOVER_ABEL2008
@@ -525,6 +558,20 @@ c            gphdl1 = gphdl(i)/dom
             edot(i) = edot(i) - real(ih2co, DKIND)*fudge*H2I(i,j,k)*
      &           h2lte(i)/(1._DKIND + gphdl1/galdl(i)) / (2._DKIND*dom)
 
+            if (iter .ge. itmax) then
+            write(98,*) "    edot = ", edot(i), "  (line 560)"
+            write(98,*) "        ih2co = ", ih2co
+            write(98,*) "        fudge = ", fudge
+            write(98,*) "        H2I = ", H2I(i,j,k)
+            write(98,*) "        h2lte = ", h2lte(i)
+            write(98,*) "            h2ltea(i) = ", h2ltea(indixe(i))
+            write(98,*) "            h2ltea(i+1) = ", h2ltea(indixe(i)+1)
+            write(98,*) "            tdef(i) = ", tdef(i)
+            write(98,*) "        gphdl1 = ", gphdl1
+            write(98,*) "        galdl = ", galdl(i)
+            write(98,*) "        dom = ", dom
+            endif
+
             end if
          enddo
 
@@ -536,7 +583,6 @@ c            gphdl1 = gphdl(i)/dom
 !        Use the Galli and Palla (1999) cooling rates for molecular H.
 
 #ifdef USE_GALLI_PALLA1999
-
          do i = is+1, ie+1
             if ( itmask(i) ) then
             gpldl(i) = gpldla(indixe(i)) + tdef(i)
@@ -574,6 +620,10 @@ c            gphdl1 = gphdl(i)/dom
             gphdl1 = gphdl(i)/(HI(i,j,k)*dom)
             edot(i) = edot(i) - real(ih2co, DKIND)*fudge*H2I(i,j,k)*
      &           gphdl(i)/(1._DKIND + gphdl1/gpldl(i)) / (2._DKIND*dom)
+
+            if (iter .ge. itmax) then
+            write(98,*) "    edot = ", edot(i), "  (line 609)"
+            endif
 
             end if
          enddo
@@ -621,6 +671,11 @@ c            gphdl1 = gphdl(i)/dom
      &           vibh(i)/(1._DKIND+vibh(i)/max(   vibl     ,tiny)) +
      &           roth(i)/(1._DKIND+roth(i)/max(qq*rotl(i),tiny))     
      &           )/2._DKIND/dom
+
+            if (iter .ge. itmax) then
+            write(98,*) "    edot = ", edot(i), "  (line 656)"
+            endif
+
             end if
          enddo
 
@@ -647,16 +702,34 @@ c               Matt's attempt at a second exponentialier cutoff
 c               ciefudge, which is applied to the continuum, is applied to edot
                 edot(i) = ciefudge*(edot(i) - 
      &                  H2I(i,j,k)*(d(i,j,k)*cieco(i)))
+
+                if (iter .ge. itmax) then
+                write(98,*) "    edot = ", edot(i), "  (line 683)"
+                endif
+
               endif
             endif
             enddo
          endif
+
+      do i = is+1, ie+1
+         if (itmask(i)) then
+            if (iter .ge. itmax) then
+               write(98,*) "    edot = ", edot(i), "  (final)"
+            endif
+         endif
+      enddo
 
       endif
 
 !     --- Cooling from HD ---
 
       if (ispecies .gt. 2) then
+
+         if (iter .ge. itmax) then
+            write(98,*) "HD cooling:"
+         endif
+
          do i = is+1, ie+1
             if ( itmask(i) ) then
 c CMB cooling floor
@@ -687,6 +760,15 @@ c  new (correct) way: (april 4, 2007)
      &              (3._DKIND*dom)
             end if
          enddo
+
+        do i = is+1, ie+1
+         if (itmask(i)) then
+            if (iter .ge. itmax) then
+               write(98,*) "    edot = ", edot(i), "  (final)"
+            endif
+         endif
+      enddo 
+
       endif
 
       do i = is+1, ie+1
@@ -739,6 +821,10 @@ c  new (correct) way: (april 4, 2007)
 
       if (anydust) then
 
+         if (iter .ge. itmax) then
+            write(98,*) "gas-grain transfer:"
+         endif
+
 !     Look up gas/grain heat transfer rates
 
          do i = is+1, ie+1
@@ -764,6 +850,14 @@ c  new (correct) way: (april 4, 2007)
             endif
          enddo
 
+      do i = is+1, ie+1
+         if (itmask(i)) then
+            if (iter .ge. itmax) then
+               write(98,*) "    edot = ", edot(i), "  (final)"
+            endif
+         endif
+      enddo
+
       endif
 
       
@@ -772,6 +866,10 @@ c  new (correct) way: (april 4, 2007)
 !     Photoionization heating
 
       if (ispecies .gt. 0) then
+
+         if (iter .ge. itmax) then
+            write(98,*) "Photoionization Heating:"
+         endif
 
       if (iradshield == 0) then ! no shielding
         do i = is+1, ie+1
@@ -925,6 +1023,14 @@ c  new (correct) way: (april 4, 2007)
         enddo
       endif
 
+      do i = is+1, ie+1
+         if (itmask(i)) then
+            if (iter .ge. itmax) then
+               write(98,*) "    edot = ", edot(i), "  (final)"
+            endif
+         endif
+      enddo
+
       endif
 
       do i=is+1, ie+1
@@ -938,6 +1044,10 @@ c  new (correct) way: (april 4, 2007)
         enddo
 
 !     --- Cloudy primordial cooling and heating ---
+
+      if (iter .ge. itmax) then
+         write(98,*) "Cloudy primordial cooling and heating:"
+      endif
 
       if (ispecies .eq. 0) then
 
@@ -1095,7 +1205,19 @@ c  new (correct) way: (april 4, 2007)
 
         endif
 
+      do i = is+1, ie+1
+         if (itmask(i)) then
+            if (iter .ge. itmax) then
+               write(98,*) "    edot = ", edot(i), "  (final)"
+            endif
+         endif
+      enddo
+
 !     --- Cloudy metal cooling and heating ---
+
+      if (iter .ge. itmax) then
+         write(98,*) "Cloudy metal cooling and heating (clnew = ", clnew ,"):"
+      endif
 
       if (imcool .eq. 1) then
 
@@ -1109,7 +1231,7 @@ c  new (correct) way: (april 4, 2007)
      &           metGridRank, metGridDim,
      &           metPar1, metPar2, metPar3,
      &           metDataSize, metCooling, metHeating,
-     &           itmask)
+     &           itmask, iter)
 
          else
 
@@ -1127,9 +1249,21 @@ c  new (correct) way: (april 4, 2007)
 
       endif
 
+      do i = is+1, ie+1
+         if (itmask(i)) then
+            if (iter .ge. itmax) then
+               write(98,*) "    edot = ", edot(i), "  (final)"
+            endif
+         endif
+      enddo
+
 !     Add user-provided volumetric and/or specific heating terms
 
       if (iVheat .eq. 1) then
+
+         if (iter .ge. itmax) then
+            write(98,*) "Volumetric heating:"
+         endif
 
       do i = is+1, ie+1
          if ( itmask(i) ) then
@@ -1137,9 +1271,21 @@ c  new (correct) way: (april 4, 2007)
          end if
       enddo
 
+         do i = is+1, ie+1
+            if (itmask(i)) then
+               if (iter .ge. itmax) then
+                  write(98,*) "    edot = ", edot(i), "  (final)"
+               endif
+            endif
+         enddo
+
       endif
 
       if (iMheat .eq. 1) then
+
+         if (iter .ge. itmax) then
+            write(98,*) "Specific heating:"
+         endif
 
       if (edot(i) .ne. edot(i)) then
          write(6,*) 'NaN before edot[1] (1243): ', edot(i)
@@ -1151,6 +1297,14 @@ c  new (correct) way: (april 4, 2007)
      &          / coolunit / dom
          end if
       enddo
+
+         do i = is+1, ie+1
+            if (itmask(i)) then
+               if (iter .ge. itmax) then
+                  write(98,*) "    edot = ", edot(i), "  (final)"
+               endif
+            endif
+         enddo
       
       endif
 
@@ -1161,6 +1315,9 @@ c  new (correct) way: (april 4, 2007)
          tgasold(i) = tgas(i)
          end if
       enddo
+
+      write(98,*) "*****************************************"
+      CLOSE(UNIT=98)
 
       return
       end

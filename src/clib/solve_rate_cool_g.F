@@ -292,6 +292,7 @@
       parameter (mh = mass_h, pi = pi_val)
 
 !  Locals
+      logical :: exists
       character(80) :: userinp
       integer i, j, k, iter
       integer t, dj, dk
@@ -326,7 +327,7 @@
      &       k50(in), k51(in), k52(in), k53(in), k54(in),
      &       k55(in), k56(in), k57(in), k58(in),
      &       k13dd(in, 14), h2dust(in),
-     &       ncrn(in), ncrd1(in), ncrd2(in)
+     &       ncrn(in), ncrd1(in), ncrd2(in) 
 
 !  Dust growth and destruction timescales
 
@@ -352,8 +353,9 @@
      &        metal_i(in,jn,kn), metal_f(in,jn,kn),
      &        dust_i(in,jn,kn), dust_f(in,jn,kn),
      &        delta_d(in,jn,kn), delta_metal(in,jn,kn),
-     &        delta_dust(in,jn,kn)
+     &        delta_dust(in,jn,kn), eInit(in,jn,kn), dInit(in,jn,kn)
       integer*8 endrun, error
+
 !
 !\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\/////////////////////////////////
 !=======================================================================
@@ -503,6 +505,13 @@ c        Check that the total metal mass is conserved over all subcycles
          enddo
 
          do iter = 1, itmax
+
+            if (iter .eq. 1) then
+               do i = is+1, ie+1
+                  eInit(i,j,k) = e(i,j,k)
+                  dInit(i,j,k) = d(i,j,k)
+               enddo
+            endif
 
             do i = is+1, ie+1
                if (itmask(i)) then
@@ -1015,20 +1024,119 @@ c        Check total metal mass was conserved over all subcycles
 
  9999    continue
 
+!        Write number of iterations, density and energy to file
+         inquire(file="grackle_iterationLog.txt", exist=exists)
+         if (exists) then
+            OPEN(UNIT=50, FILE="grackle_iterationLog.txt", STATUS="old",
+     &         POSITION="append", ACTION="write")
+         else
+            OPEN(UNIT=50, FILE="grackle_iterationLog.txt", STATUS="new",
+     &         ACTION="write")
+         endif
+         do i=is+1, ie+1
+            write(50,*) "iter: ", iter, " | initial density: ", dInit(i,j,k),
+     &                  " | final density: ", d(i,j,k),
+     &                  " | initial energy: ", eInit(i,j,k),
+     &                  " | final energy: ", e(i,j,k),
+     &                  " | densityUnits: ", urho 
+         enddo
+         CLOSE(UNIT=50)
+
 !       Abort if iteration count exceeds maximum
 
          if (iter .gt. itmax) then
 #ifdef _OPENMP
 !$omp critical
 #endif
-	    write(0,*) 'inside if statement solve rate cool:',is,ie
-            write(6,*) 'MULTI_COOL iter > ',itmax,' at j,k =',j,k
-            write(0,*) 'FATAL error (2) in MULTI_COOL'
-            write(0,'(" dt = ",1pe10.3," ttmin = ",1pe10.3)') dt, ttmin
-            write(0,'((16(1pe8.1)))') (dtit(i),i=is+1,ie+1)
-            write(0,'((16(1pe8.1)))') (ttot(i),i=is+1,ie+1)
-            write(0,'((16(1pe8.1)))') (edot(i),i=is+1,ie+1)
-            write(0,'((16(l3)))') (itmask(i),i=is+1,ie+1)
+!	    write(0,*) 'inside if statement solve rate cool:',is,ie
+!            write(6,*) 'MULTI_COOL iter > ',itmax,' at j,k =',j,k
+!            write(0,*) 'FATAL error (2) in MULTI_COOL'
+!            write(0,'(" dt = ",1pe10.3," ttmin = ",1pe10.3)') dt, ttmin
+!            write(0,'((16(1pe8.1)))') (dtit(i),i=is+1,ie+1)
+!            write(0,'((16(1pe8.1)))') (ttot(i),i=is+1,ie+1)
+!            write(0,'((16(1pe8.1)))') (edot(i),i=is+1,ie+1)
+!            write(0,'((16(l3)))') (itmask(i),i=is+1,ie+1)
+
+!           Open file for writing fatal errors
+            inquire(file="grackle_fatalErrorLog.txt", exist=exists)
+            if (exists) then
+              OPEN(UNIT=24, FILE="grackle_fatalErrorLog.txt", STATUS="old",
+     &         POSITION="append", ACTION="write")
+            else
+              OPEN(UNIT=24, FILE="grackle_fatalErrorLog.txt", STATUS="new",
+     &         ACTION="write")
+            endif
+
+            do i=is+1, ie+1
+            if (itmask(i)) then
+               write(24,*) "*********************************************"
+               write(24,*) "i:", i
+               write(24,*) "j:", j
+               write(24,*) "k:", k
+               write(24,*) "numIter:", iter
+               write(24,*) "maxIter:", itmax
+               write(24,*) "dtit:", dtit(i)
+               write(24,*) "dt:", dt
+               write(24,*) "ttot:", ttot(i)
+               write(24,*) "de:", de(i,j,k)
+               write(24,*) "dedot:", dedot(i)
+               write(24,*) "de/dedot:", de(i,j,k)/dedot(i)
+               write(24,*) "HI:", HI(i,j,k)
+               write(24,*) "HIdot:", HIdot(i)
+               write(24,*) "HI/HIdot:", HI(i,j,k)/HIdot(i)
+               if (d(i,j,k)*dom .gt. 1e8_DKIND .and. 
+     &              edot(i) .gt. 0._DKIND) then
+                  write(24,*) "heq:", heq
+                  write(24,*) "dheq:", dheq
+                  write(24,*) "heq/dheq:", heq/dheq
+               endif
+               write(24,*) "energy:", energy
+               write(24,*) "edot:", edot(i)
+               write(24,*) "energy/edot:", energy/edot(i)
+               write(24,*) "tau_accr:", tau_accr(i)
+               write(24,*) "tau_dest:", tau_dest(i)
+               write(24,*) "tau_sput:", tau_sput(i)
+               write(24,*) "density:", d
+               write(24,*) "dustDensity:", dust
+               write(24,*) "metalDensity:", metal
+               write(24,*) "temperature:", tgas
+               write(24,*) "dustTemperature:", tdust
+               write(24,*) "gasDensity_He:", met1
+               write(24,*) "gasDensity_C:", met2
+               write(24,*) "gasDensity_N:", met3
+               write(24,*) "gasDensity_O:", met4
+               write(24,*) "gasDensity_Ne:", met5
+               write(24,*) "gasDensity_Mg:", met6
+               write(24,*) "gasDensity_Si:", met7
+               write(24,*) "gasDensity_S:", met8
+               write(24,*) "gasDensity_Ca:", met9
+               write(24,*) "gasDensity_Fe:", met10
+               write(24,*) "dustDensity_He:", dmet1
+               write(24,*) "dustDensity_C:", dmet2
+               write(24,*) "dustDensity_N:", dmet3
+               write(24,*) "dustDensity_O:", dmet4
+               write(24,*) "dustDensity_Ne:", dmet5
+               write(24,*) "dustDensity_Mg:", dmet6
+               write(24,*) "dustDensity_Si:", dmet7
+               write(24,*) "dustDensity_S:", dmet8
+               write(24,*) "dustDensity_Ca:", dmet9
+               write(24,*) "dustDensity_Fe:", dmet10
+               write(24,*) "densityUnits:", urho
+               write(24,*) "lengthUnits:", uxyz
+               write(24,*) "timeUnits:", utim
+               write(24,*) "velocityUnits:", sqrt(utem * kboltz / mh)
+               write(24,*) "temperatureUnits", utem
+               write(24,*) "aUnits", uaye
+               write(24,*) "a:", aye
+               write(24,*) "z:", 1/aye - 1
+               write(24,*) "isrf_habing:", isrf_habing(i,j,k)
+               write(24,*) "volumetricHeatingRate:", Vheat(i,j,k)
+               write(24,*) "specificHeatingRate:", Mheat(i,j,k)
+               write(24,*) "*********************************************"
+            endif
+            enddo
+            CLOSE(UNIT=24)
+
 #ifdef _OPENMP
 !$omp end critical
 #endif

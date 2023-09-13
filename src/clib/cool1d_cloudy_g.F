@@ -8,7 +8,7 @@
      &                clGridRank, clGridDim,
      &                clPar1, clPar2, clPar3,
      &                clDataSize, clCooling, clHeating, 
-     &                itmask)
+     &                itmask, iter)
 
 !
 !  SOLVE CLOUDY METAL COOLING
@@ -44,6 +44,7 @@
 !    clHeating  - cloudy heating data
 !
 !    itmask     - iteration mask
+!    iter       - number of cool1d_multi iteration
 !
 !  OUTPUTS:
 !    update edot with heating/cooling contributions from metals
@@ -57,7 +58,7 @@
 
 !  General Arguments
 
-      integer in, jn, kn, is, ie, j, k
+      integer in, jn, kn, is, ie, j, k, iter
 
       real*8 comp2, dom, zr
       R_PREC d(in,jn,kn)
@@ -80,12 +81,16 @@
 !  Parameters
 
 !  Locals
-
+      
+      logical :: exists
       integer i, get_heat
       integer*8 zindex, zmidpt, zhighpt
       real*8 dclPar(clGridRank), inv_log10, log10_tCMB
       logical end_int
       character(80) :: userinp
+
+      integer itmax
+      parameter (itmax = 10000)
 
 !  Slice locals
 
@@ -95,6 +100,20 @@
 
 !\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\/////////////////////////////////
 !=======================================================================
+
+!     Open file for writing edot and edot_met
+      if (iter .ge. itmax) then
+         inquire(file="grackle_cool1dcloudy_fatalErrors.txt", exist=exists)
+         if (exists) then
+            OPEN(UNIT=15, FILE="grackle_cool1dcloudy_fatalErrors.txt", STATUS="old",
+     &         POSITION="append", ACTION="write")
+         else
+            OPEN(UNIT=15, FILE="grackle_cool1dcloudy_fatalErrors.txt", STATUS="new",
+     &         ACTION="write")
+         endif
+         write(15,*) "*****************************************"
+      endif
+      
 
       end_int = .false.
       get_heat = iClHeat
@@ -161,6 +180,12 @@
      &              dclPar(1), clDataSize, clCooling, log_cool(i))
                edot_met(i) = -10._DKIND**log_cool(i)
 
+               if (iter .ge. itmax) then
+                  write(15,*) "Temperature Interpolation:"
+                  write(15,*) "    edot_met = ", edot_met(i)
+                  write(15,*) "    log_cool = ", log_cool(i)
+               endif
+
 !     Ignore CMB term if T >> T_CMB
                if ((icmbTfloor .eq. 1) .and. 
      &              ((log10tem(i) - log10_tCMB) .lt. 2._DKIND)) then
@@ -168,6 +193,13 @@
      &                 dclPar(1), clDataSize, clCooling, 
      &                 log_cool_cmb(i))
                   edot_met(i) = edot_met(i) + 10._DKIND**log_cool_cmb(i)
+
+                  if (iter .ge. itmax) then
+                     write(15,*) "    icmbTfloor == 1 && !(T >> T_CMB):"
+                     write(15,*) "        edot_met = ", edot_met(i)
+                     write(15,*) "        log_cool_cmb = ", log_cool_cmb(i)
+                  endif
+
                endif
 
                if (get_heat .eq. 1) then
@@ -175,6 +207,17 @@
      &                 dclPar(1), clDataSize, clHeating, 
      &                 log_heat(i))
                   edot_met(i) = edot_met(i) + 10._DKIND**log_heat(i)
+
+                  if (iter .ge. itmax) then
+                     write(15,*) "    get_heat == 1:"
+                     write(15,*) "        edot_met = ", edot_met(i)
+                     write(15,*) "        log_heat = ", log_heat(i)
+                  endif
+
+               endif
+
+               if (iter .ge. itmax) then
+                     write(15,*) "    edot_met = ", edot_met(i), "  (final)"
                endif
 
 !           Interpolate over density and temperature.
@@ -184,6 +227,12 @@
      &              clDataSize, clCooling, log_cool(i))
                edot_met(i) = -10._DKIND**log_cool(i)
 
+               if (iter .ge. itmax) then
+                  write(15,*) "Temperature and Density Interpolation:"
+                  write(15,*) "    edot_met = ", edot_met(i)
+                  write(15,*) "    log_cool = ", log_cool(i)
+               endif
+
 !     Ignore CMB term if T >> T_CMB
                if ((icmbTfloor .eq. 1) .and. 
      &              ((log10tem(i) - log10_tCMB) .lt. 2._DKIND)) then
@@ -191,6 +240,13 @@
      &                 clGridDim, clPar1, dclPar(1), clPar2, dclPar(2),
      &                 clDataSize, clCooling, log_cool_cmb(i))
                   edot_met(i) = edot_met(i) + 10._DKIND**log_cool_cmb(i)
+
+                  if (iter .ge. itmax) then
+                     write(15,*) "    icmbTfloor == 1 && !(T >> T_CMB):"
+                     write(15,*) "        edot_met = ", edot_met(i)
+                     write(15,*) "        log_cool_cmb = ", log_cool_cmb(i)
+                  endif
+
                endif
 
                if (get_heat .eq. 1) then
@@ -198,7 +254,18 @@
      &              clPar1, dclPar(1), clPar2, dclPar(2),
      &              clDataSize, clHeating, log_heat(i))
                   edot_met(i) = edot_met(i) + 10._DKIND**log_heat(i)
+
+                  if (iter .ge. itmax) then
+                     write(15,*) "    get_heat == 1:"
+                     write(15,*) "        edot_met = ", edot_met(i)
+                     write(15,*) "        log_heat = ", log_heat(i)
+                  endif
+
                endif
+
+            if (iter .ge. itmax) then
+                  write(15,*) "    edot_met = ", edot_met(i), "  (final)"
+            endif
 
 !           Interpolate over density, redshift, and temperature.
             else if (clGridRank .eq. 3) then
@@ -210,6 +277,12 @@
      &              clDataSize, clCooling, 
      &              end_int, log_cool(i))
                edot_met(i) = -10._DKIND**log_cool(i)
+
+               if (iter .ge. itmax) then
+                  write(15,*) "Temperature, Density and Redshift Interpolation:"
+                  write(15,*) "    edot_met = ", edot_met(i)
+                  write(15,*) "    log_cool = ", log_cool(i)
+               endif
 
 !     Ignore CMB term if T >> T_CMB
                if ((icmbTfloor .eq. 1) .and. 
@@ -223,6 +296,12 @@
      &                 end_int, log_cool_cmb(i))
                   edot_met(i) = edot_met(i) + 10._DKIND**log_cool_cmb(i)
 
+                  if (iter .ge. itmax) then
+                     write(15,*) "    icmbTfloor == 1 && !(T >> T_CMB):"
+                     write(15,*) "        edot_met = ", edot_met(i)
+                     write(15,*) "        log_cool_cmb = ", log_cool_cmb(i)
+                  endif
+
                endif
 
                if (get_heat .eq. 1) then
@@ -234,7 +313,18 @@
      &                 clDataSize, clHeating, 
      &                 end_int, log_heat(i))
                   edot_met(i) = edot_met(i) + 10._DKIND**log_heat(i)
+                  
+                  if (iter .ge. itmax) then
+                     write(15,*) "    get_heat == 1:"
+                     write(15,*) "        edot_met = ", edot_met(i)
+                     write(15,*) "        log_heat = ", log_heat(i)
+                  endif
+
                endif
+
+            if (iter .ge. itmax) then
+                  write(15,*) "    edot_met = ", edot_met(i), "(final)"
+            endif
 
             else
 #ifdef _OPENMP
@@ -249,13 +339,34 @@
 
 !           Scale cooling by metallicity.
 
+            if (iter .ge. itmax) then
+               write(15,*) "Scale Cooling by Metallicity:"
+            endif
+
             if (iZscale .eq. 1) then
                edot_met(i) = edot_met(i) * metallicity(i)
-
             endif
+
+            if (iter .ge. itmax) then
+               write(15,*) "    edot_met = ", edot_met(i), "  (final)"
+            endif
+
+            if (iter .ge. itmax) then
+               write(15,*) "Update edot:"
+               write(15,*) "    edot (initial) = ", edot(i)
+            endif 
 
             edot(i) = edot(i) + 
      &           (edot_met(i) * rhoH(i) * rhoH(i))
+
+            if (iter .ge. itmax) then
+               write(15,*) "    edot (final) = ", edot(i)
+               write(15,*) "    edot_met = ", edot_met(i)
+               write(15,*) "    rhoH = ", rhoH(i)
+               write(15,*) "*****************************************"
+               CLOSE(UNIT=15)
+            endif
+
 
          end if
 
