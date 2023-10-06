@@ -60,6 +60,10 @@ ENTRY(cmb_temperature_floor, INT, 1)
 /* adiabatic index */
 ENTRY(Gamma, DOUBLE, 5./3.)
 
+/* Equilibrium solver for H2 formation in the three-body reaction
+      0) off, 1) on */
+ENTRY(H2_threebody_equilibrium, INT, 1)
+
 /* H2 formation on dust grains and dust cooling
    0) off, 1) on */
 ENTRY(h2_on_dust, INT, FALSE)
@@ -82,6 +86,13 @@ ENTRY(use_isrf_field, INT, 0)
 
 /* local FUV interstellar radiation field in Habing units */
 ENTRY(interstellar_radiation_field, DOUBLE, 1.7)
+
+/* Flag to turn on/off the subcycle timestep damping */
+ENTRY(use_subcycle_timestep_damping, INT, 0)
+
+/* number of subcycle iterations (in excess of 100) over which
+to increase the timestep by an e-folding */
+ENTRY(subcycle_timestep_damping_interval, INT, 10)
   
 /* flags to signal that arrays of volumetric or
    specific heating rates are being provided */
