@@ -91,12 +91,12 @@ typedef struct
   /* Flag to allow the subcycle timestep damping*/
   int use_subcycle_timestep_damping;
 
-  /* The number of iterations in solve_rate_cool over which
-      the subcycle timestep is artificially inflated by an
-      e-folding when the calculation is making negligible
-      progression 
-      
-      dtit is increased by a factor of:
+  /* Flag to exponentially dampen the chemistry and cooling terms that
+      constrain the subcycle timestep. Specifically, these are the rate of
+      change of the HI density, electron density, and internal energy (i.e.,
+      the cooling rate). This prevents the solver from getting stuck in
+      situations where the subcycle timestep becomes very short,
+      preventing it from integrating for the full global timestep.
 
          exp((100 - iter)/<my_chemistry.subcycle_timestep_damping_interval>)
 
