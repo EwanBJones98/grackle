@@ -660,11 +660,9 @@
 !               of dedot and HIdot. This gets around the problem of 
 !               oscillatory behaviour around solutions and unreasonably
 !               small timesteps.
-               if (iDamping .eq. 1) then
-                  if(iter .gt. 100) then
+               if (iDamping .eq. 1 .and. iter .gt. 100) then
                      dedot(i) = dedot(i) * dampingTerm(i)
                      HIdot(i) = HIdot(i) * dampingTerm(i)
-                  endif
                endif
 
 !              compute minimum rate timestep
