@@ -832,10 +832,8 @@
 !               of edot. This gets around the problem of 
 !               oscillatory behaviour around solutions and unreasonably
 !               small timesteps.
-               if (iDamping .eq. 1) then
-                  if (iter .gt. 100) then
+               if (iDamping .eq. 1 .and. iter .gt. 100) then
                      edot(i) = edot(i) * dampingTerm(i)
-                  endif
                endif
 
 !              Compute timestep for 10% change 
