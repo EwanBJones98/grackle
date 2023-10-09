@@ -64,6 +64,10 @@ typedef struct
   /* adiabatic index */
   double Gamma;
 
+  /* Equilibrium solver for H2 formation in the three-body reaction
+      0) off, 1) on */
+  int H2_threebody_equilibrium;
+
   /* H2 formation on dust grains and dust cooling
      0) off, 1) on */
   int h2_on_dust;
@@ -83,6 +87,23 @@ typedef struct
 
   // local FUV interstellar radiation field in Habing units
   double interstellar_radiation_field;
+
+  /* Flag to allow the subcycle timestep damping*/
+  int use_subcycle_timestep_damping;
+
+  /* Flag to exponentially dampen the chemistry and cooling terms that
+      constrain the subcycle timestep. Specifically, these are the rate of
+      change of the HI density, electron density, and internal energy (i.e.,
+      the cooling rate). This prevents the solver from getting stuck in
+      situations where the subcycle timestep becomes very short,
+      preventing it from integrating for the full global timestep.
+
+         exp((100 - iter)/<my_chemistry.subcycle_timestep_damping_interval>)
+
+      such that after every <my_chemistry.subcycle_timestep_damping_interval>
+      number of iterations exceeding 100 the timestep is inflated by an e-folding
+      */
+   int subcycle_timestep_damping_interval;
 
   /* flags to signal that arrays of volumetric or
      specific heating rates are being provided */

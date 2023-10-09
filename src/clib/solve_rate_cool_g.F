@@ -7,7 +7,7 @@
       subroutine solve_rate_cool_g(icool, d, e, u, v, w, de,
      &                HI, HII, HeI, HeII, HeIII,
      &                in, jn, kn, nratec, iexpand, 
-     &                ispecies, imetal, imcool, idust,
+     &                ispecies, imetal, imcool, iHeq, idust,
      &                idustall, idustfield, idim,
      &                is, js, ks, ie, je, ke, ih2co, ipiht, idustrec,
      &                igammah,
@@ -48,6 +48,7 @@
      &                iVheat, iMheat, Vheat, Mheat,
      &                iTfloor, Tfloor_scalar, Tfloor,
      &                iisrffield, isrf_habing,
+     &                iDamping, dampingInterval,
      &                iDustEvol, dust_destruction_eff,
      &                sne_coeff, sne_shockspeed, dust_grainsize,
      &                dust_growth_densref, dust_growth_tauref,
@@ -99,6 +100,8 @@
 !    ispecies - chemistry module (1 - H/He only, 2 - molecular H, 3 - D) 
 !    imetal   - flag if metal field is active (0 = no, 1 = yes)
 !    imcool   - flag if there is metal cooling
+!    iHeq     - flag to toggle the H2 formation from three-body rate equilibrium
+!                at large densities (0 = off, 1 = on)  
 !    idust    - flag for H2 formation on dust grains
 !    idustall - flag for dust (0 - none, 1 - heating/cooling + H2 form.)
 !    idustfield - flag if a dust density field is present
@@ -165,6 +168,9 @@
 !    met         - densities of individual metal species in gas phase
 !    dmet        - densities of individual metal species in dust grains
 !    sne         - array of number DENSITY of super novaes per dt
+!    iDamping    - flag to turn on/off the timestep damping
+!    dampingInterval - the number of iterations taken for dtit to artificially
+!                   increase by an e-folding when calculation is slow
 !
 !  OUTPUTS:
 !    update chemical rate densities (HI, HII, etc)
@@ -184,13 +190,14 @@
 
       integer icool, in, jn, kn, is, js, ks, ie, je, ke, nratec, 
      &        iexpand, ih2co, ipiht, ispecies, imetal, idim,
-     &        ierr, imcool, idust, idustall, idustfield, idustrec,
+     &        ierr, imcool, iHeq, idust, idustall, idustfield, idustrec,
      &        igammah, ih2optical, iciecool, ithreebody,
      &        ndratec, clnew, iVheat, iMheat, iTfloor,
      &        iH2shield, iradshield,
      &        iradtrans, iradcoupled, iradstep, irt_honly,
      &        iisrffield, ifdust, iDustEvol,
-     &        iH2shieldcustom, itmax, exititmax
+     &        iH2shieldcustom, itmax, exititmax,
+     &        iDamping, dampingInterval
 
       real*8  dx, dt, aye, temstart, temend, gamma,
      &        utim, uxyz, uaye, urho, utem, fh, dtoh, z_solar, 
@@ -322,7 +329,7 @@
      &       dtit(in), ttot(in), p2d(in), tgas(in), tgasold(in),
      &       tdust(in), metallicity(in), dust2gas(in),
      &       rhoH(in), mmw(in), mynh(in), myde(in), gammaha_eff(in),
-     &       gasgr_tdust(in), regr(in), olddtit
+     &       gasgr_tdust(in), regr(in), dampingTerm(in), olddtit
 
 !  Rate equation row temporaries
 
@@ -355,24 +362,16 @@
       real*8 hyd01k(in), h2k01(in), vibh(in), roth(in), rotl(in),
      &       gpldl(in), gphdl(in), hdlte(in), hdlow(in), cieco(in)
 
+!  Interval over which edot, dedot and HIdot are decreased by an e-folding
+!   and hence the interval with which dtit is increased by an e-folding
+      
+
 !  Iteration mask
 
       logical itmask(in), anydust
-
-!  DEBUG
-      R_PREC  dMet_i(in,jn,kn), gMet_i(in,jn,kn), tMet_i(in,jn,kn),
-     &        dMet_f(in,jn,kn), gMet_f(in,jn,kn), tMet_f(in,jn,kn),
-     &        err_tMet(in,jn,kn), d_i(in,jn,kn), d_f(in,jn,kn),
-     &        metal_i(in,jn,kn), metal_f(in,jn,kn),
-     &        dust_i(in,jn,kn), dust_f(in,jn,kn),
-     &        delta_d(in,jn,kn), delta_metal(in,jn,kn),
-     &        delta_dust(in,jn,kn)
-      integer*8 endrun, error
 !
 !\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\/////////////////////////////////
 !=======================================================================
-
-      endrun = 0
 
 !     Set error indicator
 
@@ -508,13 +507,6 @@
 
 !        ------------------ Loop over subcycles ----------------
 
-c        Check that the total metal mass is conserved over all subcycles
-         do i = is+1, ie+1
-            dMet_i(i,j,k) = dust(i,j,k)
-            gMet_i(i,j,k) = metal(i,j,k)
-            tMet_i(i,j,k) = dMet_i(i,j,k) + gMet_i(i,j,k)
-         enddo
-
          do iter = 1, itmax
 
             do i = is+1, ie+1
@@ -523,19 +515,20 @@ c        Check that the total metal mass is conserved over all subcycles
                endif
             enddo
 
-!           Compute the cooling rate, tgas, tdust, and metallicity for this row
+            if (iDamping .eq. 1) then
+               do i = is+1, ie+1
+                  if (itmask(i)) then
+                     if (iter .gt. 100) then
+                        dampingTerm(i) = max(tiny8, 
+     &                                    exp((100. - iter)/dampingInterval))
+                     else
+                        dampingTerm(i) = 1.
+                     endif
+                  endif
+               enddo
+            endif
 
-            do i = is+1, ie+1
-               if (metal(i,j,k) .gt. d(i,j,k)) then
-                  write(*,*) "-- ERROR (before cool 1d multi) --"
-                  write(*,*) "!! gas metal density > total gas density !!"
-                  write(*,*) "metal = ", metal(i,j,k)
-                  write(*,*) "dust = ", dust(i,j,k)
-                  write(*,*) "total = ", d(i,j,k)
-                  write(*,*) "-- ERROR --"
-                  call exit(44)
-               endif
-            enddo
+!           Compute the cooling rate, tgas, tdust, and metallicity for this row
 
             call cool1d_multi_g(
      &                d, e, u, v, w, de, HI, HII, HeI, HeII, HeIII,
@@ -579,17 +572,6 @@ c        Check that the total metal mass is conserved over all subcycles
      &                iTfloor, Tfloor_scalar, Tfloor,
      &                iisrffield, isrf_habing, itmask)
             
-            do i = is+1, ie+1
-               if (metal(i,j,k) .gt. d(i,j,k)) then
-                  write(*,*) "-- ERROR (after cool 1d multi) --"
-                  write(*,*) "!! gas metal density > total gas density !!"
-                  write(*,*) "metal = ", metal(i,j,k)
-                  write(*,*) "dust = ", dust(i,j,k)
-                  write(*,*) "total = ", d(i,j,k)
-                  write(*,*) "-- ERROR --"
-                  call exit(45)
-               endif
-            enddo
 
             if (ispecies .gt. 0) then
 
@@ -674,6 +656,15 @@ c        Check that the total metal mass is conserved over all subcycles
                   HIdot(i) = min(abs(HIdot(i)), abs(HIdot_prev(i)))
                endif
 
+!              If the iteration count is very high then decrease the value
+!               of dedot and HIdot. This gets around the problem of 
+!               oscillatory behaviour around solutions and unreasonably
+!               small timesteps.
+               if (iDamping .eq. 1 .and. iter .gt. 100) then
+                     dedot(i) = dedot(i) * dampingTerm(i)
+                     HIdot(i) = HIdot(i) * dampingTerm(i)
+               endif
+
 !              compute minimum rate timestep
                if (iDustEvol .eq. 1) then
 
@@ -701,69 +692,72 @@ c        Check that the total metal mass is conserved over all subcycles
      &              0.1_DKIND*tau_accr(i), 
      &              0.1_DKIND*tau_dest(i), 
      &              0.1_DKIND*tau_sput(i))
+               
+               if (iHeq .eq. 1) then
+                  if (d(i,j,k)*dom .gt. 1e8_DKIND .and. 
+     &               edot(i) .gt. 0._DKIND      .and.
+     &               ispecies .gt. 1) then
+   !              Equilibrium value for H is:
+   !              H = (-1._DKIND / (4*k22)) * (k13 - sqrt(8 k13 k22 rho + k13^2))
+   !              We now want this to change by 10% or less, but we're only
+   !              differentiating by dT.  We have de/dt.  We need dT/de.
+   !              T = (g-1)*p2d*utem/N; tgas == (g-1)(p2d*utem/N)
+   !              dH_eq / dt = (dH_eq/dT) * (dT/de) * (de/dt)
+   !              dH_eq / dT (see above; we can calculate the derivative here)
+   !              dT / de = utem * (gamma - 1._DKIND) / N == tgas / p2d
+   !              de / dt = edot
+   !              Now we use our estimate of dT/de to get the estimated
+   !              difference in the equilibrium
+                  eqt2 = min(log(tgas(i)) + 0.1_DKIND*dlogtem, t2(i))
+                  eqtdef = (eqt2 - t1(i))/(t2(i) - t1(i))
+                  eqk222 = k22a(indixe(i)) +
+     &               (k22a(indixe(i)+1) -k22a(indixe(i)))*eqtdef
+                  eqk132 = k13a(indixe(i)) +
+     &               (k13a(indixe(i)+1) -k13a(indixe(i)))*eqtdef
+                  heq2 = (-1._DKIND / (4._DKIND*eqk222)) * (eqk132-
+     &                  sqrt(8._DKIND*eqk132*eqk222*
+     &                  fh*d(i,j,k)+eqk132**2._DKIND))
 
-               if (d(i,j,k)*dom .gt. 1e8_DKIND .and. 
-     &              edot(i) .gt. 0._DKIND      .and.
-     &             ispecies .gt. 1) then
-!              Equilibrium value for H is:
-!              H = (-1._DKIND / (4*k22)) * (k13 - sqrt(8 k13 k22 rho + k13^2))
-!              We now want this to change by 10% or less, but we're only
-!              differentiating by dT.  We have de/dt.  We need dT/de.
-!              T = (g-1)*p2d*utem/N; tgas == (g-1)(p2d*utem/N)
-!              dH_eq / dt = (dH_eq/dT) * (dT/de) * (de/dt)
-!              dH_eq / dT (see above; we can calculate the derivative here)
-!              dT / de = utem * (gamma - 1._DKIND) / N == tgas / p2d
-!              de / dt = edot
-!              Now we use our estimate of dT/de to get the estimated
-!              difference in the equilibrium
-                eqt2 = min(log(tgas(i)) + 0.1_DKIND*dlogtem, t2(i))
-                eqtdef = (eqt2 - t1(i))/(t2(i) - t1(i))
-                eqk222 = k22a(indixe(i)) +
-     &            (k22a(indixe(i)+1) -k22a(indixe(i)))*eqtdef
-                eqk132 = k13a(indixe(i)) +
-     &            (k13a(indixe(i)+1) -k13a(indixe(i)))*eqtdef
-                heq2 = (-1._DKIND / (4._DKIND*eqk222)) * (eqk132-
-     &               sqrt(8._DKIND*eqk132*eqk222*
-     &               fh*d(i,j,k)+eqk132**2._DKIND))
+                  eqt1 = max(log(tgas(i)) - 0.1_DKIND*dlogtem, t1(i))
+                  eqtdef = (eqt1 - t1(i))/(t2(i) - t1(i))
+                  eqk221 = k22a(indixe(i)) +
+     &               (k22a(indixe(i)+1) -k22a(indixe(i)))*eqtdef
+                  eqk131 = k13a(indixe(i)) +
+     &               (k13a(indixe(i)+1) -k13a(indixe(i)))*eqtdef
+                  heq1 = (-1._DKIND / (4._DKIND*eqk221)) * (eqk131-
+     &                  sqrt(8._DKIND*eqk131*eqk221*
+     &                  fh*d(i,j,k)+eqk131**2._DKIND))
 
-                eqt1 = max(log(tgas(i)) - 0.1_DKIND*dlogtem, t1(i))
-                eqtdef = (eqt1 - t1(i))/(t2(i) - t1(i))
-                eqk221 = k22a(indixe(i)) +
-     &            (k22a(indixe(i)+1) -k22a(indixe(i)))*eqtdef
-                eqk131 = k13a(indixe(i)) +
-     &            (k13a(indixe(i)+1) -k13a(indixe(i)))*eqtdef
-                heq1 = (-1._DKIND / (4._DKIND*eqk221)) * (eqk131-
-     &               sqrt(8._DKIND*eqk131*eqk221*
-     &               fh*d(i,j,k)+eqk131**2._DKIND))
-
-                dheq = (abs(heq2-heq1)/(exp(eqt2) - exp(eqt1)))
-     &               * (tgas(i)/p2d(i)) * edot(i)
-                heq = (-1._DKIND / (4._DKIND*k22(i))) * (k13(i)-
-     &               sqrt(8._DKIND*k13(i)*k22(i)*
-     &               fh*d(i,j,k)+k13(i)**2._DKIND))
-                !write(0,*) heq2, heq1, eqt2, eqt1, tgas(i), p2d(i), 
-!     &                     edot(i)
-                if (dheq .lt. 0.) then
-!                 write(*,*) "heq2=",heq2,", heq1=",heq1,", eqt2=",eqt2
-!                 write(*,*) "eqt1=",eqt1,", tgas=",tgas(i)
-!                 write(*,*) "p2d=",p2d(i),", edot=", edot(i)
-!                 read(*,*) userinp
-                  write(*,*) "dheq negative!", dheq, ", heq=", heq
-                endif
-                if (d(i,j,k)*dom.gt.1e18_DKIND.and.i.eq.4) then
+                  dheq = (abs(heq2-heq1)/(exp(eqt2) - exp(eqt1)))
+     &                  * (tgas(i)/p2d(i)) * edot(i)
+                  heq = (-1._DKIND / (4._DKIND*k22(i))) * (k13(i)-
+     &                  sqrt(8._DKIND*k13(i)*k22(i)*
+     &                  fh*d(i,j,k)+k13(i)**2._DKIND))
+                  !write(0,*) heq2, heq1, eqt2, eqt1, tgas(i), p2d(i), 
+!     &                       edot(i)
+                  if (dheq .lt. 0.) then
+!                    write(*,*) "heq2=",heq2,", heq1=",heq1,", eqt2=",eqt2
+!                    write(*,*) "eqt1=",eqt1,", tgas=",tgas(i)
+!                    write(*,*) "p2d=",p2d(i),", edot=", edot(i)
+!                    read(*,*) userinp
+                     write(*,*) "dheq negative!", dheq, ", heq=", heq
+                  endif
+                  if (d(i,j,k)*dom.gt.1e18_DKIND.and.i.eq.4) then
 #ifdef _OPENMP
 !$omp critical
 #endif
-                  write(0,*) HI(i,j,k)/heq, edot(i), tgas(i)
+                     write(0,*) HI(i,j,k)/heq, edot(i), tgas(i)
 #ifdef _OPENMP
 !$omp end critical
 #endif
-                endif
- !              Ewan: I've wrapped an abs around the heq fraction as it 
- !                    can be negative
-                dtit(i) = min(dtit(i), 0.1_DKIND*abs(heq/dheq))
+                  endif
 
-              endif
+                  dtit(i) = min(dtit(i), 0.1_DKIND*heq/dheq)
+
+                  endif
+               endif
+
+
               if (iter.gt.10_DKIND) then
                  dtit(i) = min(olddtit*1.5_DKIND, dtit(i))
               endif
@@ -834,20 +828,20 @@ c        Check that the total metal mass is conserved over all subcycles
      &              edot(i) = tiny8
 	       if (abs(edot(i)) .lt. tiny8) edot(i) = tiny8
 
-!              Compute timestep for 10% change
+!              If the iteration count is very high then decrease the value
+!               of edot. This gets around the problem of 
+!               oscillatory behaviour around solutions and unreasonably
+!               small timesteps.
+               if (iDamping .eq. 1 .and. iter .gt. 100) then
+                     edot(i) = edot(i) * dampingTerm(i)
+               endif
 
-                  if (abs(dtit(i)) .lt. 1d-100 .or. dtit(i) .ne. dtit(i)) then
-                     write(*,*) "before line 793 :: dtit uninitialised or NaN --> ", dtit(i)
-                  endif 
+!              Compute timestep for 10% change 
 
                   dtit(i) = min(real(abs(0.1_DKIND*
      &              energy/edot(i)), DKIND), 
      &              dt-ttot(i), dtit(i))
-
-                  if (abs(dtit(i)) .lt. 1d-100 .or. dtit(i) .ne. dtit(i)) then
-                     write(*,*) "after line 793 :: dtit uninitialised or NaN --> ", dtit(i)
-                  endif 
-
+ 
                if (dtit(i) .ne. dtit(i)) then
 #ifdef _OPENMP
 !$omp critical
@@ -930,28 +924,11 @@ c        Check that the total metal mass is conserved over all subcycles
             endif
 
 !           Dust growth and destruction 
-
-            do i = is+1, ie+1
-               if (metal(i,j,k) .gt. d(i,j,k)) then
-                  write(*,*) "-- ERROR (before dust growth and destruction) --"
-                  write(*,*) "!! gas metal density > total gas density !!"
-                  write(*,*) "gas metal = ", metal(i,j,k)
-                  write(*,*) "total gas = ", d(i,j,k)
-                  write(*,*) "dust = ", dust(i,j,k)
-                  write(*,*) "-- ERROR --"
-                  call exit(44)
-               endif
-            enddo
             
             if (iDustEvol .eq. 1) then
-            do i = is+1, ie+1
+               do i = is+1, ie+1
                 if (itmask(i)) then
-
-c                 Variables for consistency checks
-                  d_i(i,j,k) = d(i,j,k)
-                  metal_i(i,j,k) = metal(i,j,k)
-                  dust_i(i,j,k) = dust(i,j,k)
-               
+     
                    call dust_growth_and_destruction(in,jn,kn,i,j,k,
      &                  d, dust, metal, tgas, tdust,
      &                  met1, met2, met3, met4, met5, met6,
@@ -965,46 +942,8 @@ c                 Variables for consistency checks
      &                  z_solar, SolarAbd, utim, urho, uxyz, aye, dt,
      &                  metpt, dmetpt)
                   
-c                 Variables for consistency checks
-                  d_f(i,j,k) = d(i,j,k)
-                  metal_f(i,j,k) = metal(i,j,k)
-                  dust_f(i,j,k) = dust(i,j,k)
-c                 Change in the variables
-                  delta_d(i,j,k) = d_f(i,j,k) - d_i(i,j,k)
-                  delta_metal(i,j,k) = metal_f(i,j,k) - metal_i(i,j,k)
-                  delta_dust(i,j,k) = dust_f(i,j,k) - dust_i(i,j,k)
-c                 Check that the total gas density rises/falls accordingly when
-c                 metals transition between gas & dust
-                  error = 0
-                  if (abs(abs(delta_d(i,j,k))-abs(delta_metal(i,j,k))) .gt. 1d-8) then
-                     write(*,*) "Total gas density and gas metal density changed ",
-     &               "by different amounts during call to dust_growth_and_destruction!"
-                     error = 1
-                  endif
-                  if (abs(abs(delta_metal(i,j,k)) - abs(delta_dust(i,j,k))) .gt. 1d-8) then
-                     write(*,*) "Gas metal density and dust density changed ",
-     &               "by different amounts during call to dust_growth_and_destruction!"
-                     write(*,*) "Discrepant by: ", abs(abs(delta_metal(i,j,k)) - abs(delta_dust(i,j,k)))
-                     error = 1
-                  endif
-                  if (error .eq. 1) then
-                     write(*,*) ">>> Initial Values >>>"
-                     write(*,*) "gas density = ", d_i(i,j,k)
-                     write(*,*) "gas metal density = ", metal_i(i,j,k)
-                     write(*,*) "dust density = ", dust_i(i,j,k)
-                     write(*,*) ">>> Final Values >>>"
-                     write(*,*) "gas density = ", d_f(i,j,k)
-                     write(*,*) "gas metal density = ", metal_f(i,j,k)
-                     write(*,*) "dust density = ", dust_f(i,j,k)
-                     write(*,*) ">>> ∆ Values >>>"
-                     write(*,*) "∆ gas density = ", delta_d(i,j,k)
-                     write(*,*) "∆ gas metal density = ", delta_metal(i,j,k)
-                     write(*,*) "∆ dust density = ", delta_dust(i,j,k)
-                     write(*,*) "  "
-                     call exit(76)
-                  endif
                 endif
-            enddo
+               enddo
             endif
 
 
@@ -1082,18 +1021,6 @@ c            WARNING_MESSAGE
 
       if (iexpand .eq. 1) then
 
-      dk = ke - ks + 1
-      dj = je - js + 1
-      do t = 0, dk*dj-1
-         k = t/dj      + ks+1
-         j = mod(t,dj) + js+1
-         do i = is+1, ie+1
-            if (metal(i,j,k) .gt. d(i,j,k)) then
-               write(*,*) "METAL DENSITY LARGER THAN DUST DENSITY BEFORE SCALE_FIELDS!"
-            endif
-         enddo
-      enddo
-
          call scale_fields_g(d, de, sne, HI, HII, HeI, HeII, HeIII,
      &                  HM, H2I, H2II, DI, DII, HDI, metal, dust,
      &                  met1, met2, met3, met4, met5,
@@ -1104,81 +1031,17 @@ c            WARNING_MESSAGE
      &                  in, jn, kn, ispecies, imetal, idustfield,
      &                  iDustEvol, ifdust, aye**3)
 
-         dk = ke - ks + 1
-         dj = je - js + 1
-         do t = 0, dk*dj-1
-            k = t/dj      + ks+1
-            j = mod(t,dj) + js+1
-            do i = is+1, ie+1
-               if (metal(i,j,k) .gt. d(i,j,k)) then
-                  write(*,*) "METAL DENSITY LARGER THAN DUST DENSITY AFTER SCALE_FIELDS!"
-               endif
-            enddo
-         enddo
-
       endif
 
       if (ispecies .gt. 0) then
 
 !     Correct the species to ensure consistency (i.e. type conservation)
 
-      dk = ke - ks + 1
-      dj = je - js + 1
-      do t = 0, dk*dj-1
-         k = t/dj      + ks+1
-         j = mod(t,dj) + js+1
-         do i = is+1, ie+1
-            if (metal(i,j,k) .gt. d(i,j,k)) then
-               write(*,*) "METAL DENSITY LARGER THAN DUST DENSITY AFTER MAKE_CONSISTENT!"
-            endif
-         enddo
-      enddo
-
       call make_consistent_g(de, HI, HII, HeI, HeII, HeIII,
      &                     HM, H2I, H2II, DI, DII, HDI, metal, 
      &                     d, is, ie, js, je, ks, ke,
      &                     in, jn, kn, ispecies, imetal, fh, dtoh)
-      
-      dk = ke - ks + 1
-      dj = je - js + 1
-      do t = 0, dk*dj-1
-         k = t/dj      + ks+1
-         j = mod(t,dj) + js+1
-         do i = is+1, ie+1
-            if (metal(i,j,k) .gt. d(i,j,k)) then
-               write(*,*) "METAL DENSITY LARGER THAN TOTAL DENSITY AFTER MAKE_CONSISTENT!"
-            endif
-         enddo
-      enddo
-
-      endif
-
-c     Check that the total metal mass is conserved over the call to dust evolution
-      dk = ke - ks + 1
-      dj = je - js + 1
-      do t = 0, dk*dj-1
-         k = t/dj      + ks+1
-         j = mod(t,dj) + js+1
-         do i = is+1, ie+1
-            dMet_f(i,j,k) = dust(i,j,k)
-            gMet_f(i,j,k) = metal(i,j,k)
-            tMet_f(i,j,k) = dMet_f(i,j,k) + gMet_f(i,j,k)
-c                  Tolerance on fractional error of 1e-10
-            err_tMet(i,j,k) = abs(tMet_f(i,j,k) - tMet_i(i,j,k)) / tMet_i(i,j,k)
-            if (err_tMet(i,j,k) .gt. 1d-10) then
-               write(*,*) "Total metal mass not conserved over call to dust growth ",
-     &                           "and destruction!"
-               write(*,*) "Total Metal Mass --> Initial = ", tMet_i(i,j,k), ", Final = ", tMet_f(i,j,k),
-     &                           " Fractional Error = ", err_tMet(i,j,k)
-c                      write(*,*) "Gas Metal Mass --> Initial = ", gMet_i, ", Final = ", gMet_f
-c                      write(*,*) "Dust Metal Mass --> Initial = ", dMet_i, ", Final = ", dMet_f
-               endrun = 1
-            endif
-         enddo
-      enddo
-
-      if (endrun .eq. 1) then
-         call exit(99)
+   
       endif
 
       return
