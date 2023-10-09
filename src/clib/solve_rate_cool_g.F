@@ -519,7 +519,7 @@
                do i = is+1, ie+1
                   if (itmask(i)) then
                      if (iter .gt. 100) then
-                        dampingTerm(i) = max(1d-100, 
+                        dampingTerm(i) = max(tiny8, 
      &                                    exp((100. - iter)/dampingInterval))
                      else
                         dampingTerm(i) = 1.
