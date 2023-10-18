@@ -1,0 +1,5 @@
+MatrixSize 	 NumIters 	 NumThreads 	 OpenMP 	 TotalTime 	 AverageSingleTime 
+
+
+
+256 	 1000 	 8 	 CPU 	 22.2204 	 0.0222204 
