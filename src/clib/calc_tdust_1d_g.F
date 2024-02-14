@@ -5,7 +5,8 @@
 
       subroutine calc_tdust_1d_g(
      &     tdust, tgas, nh, gasgr, gamma_isrfa, isrf, itmask,
-     &     trad, in, is, ie, j, k)
+     &     trad, in, is, ie, j, k, dust_to_gas_ratio,
+     &     hydrogen_column_density, idustSelfShielding)
 
 !  CALCULATE EQUILIBRIUM DUST TEMPERATURE
 !
@@ -27,6 +28,11 @@
 !     gamma_isrfa - heating from interstellar radiation field
 !     isrf     - interstellar radiation field in Habing units
 !
+!     dust_to_gas_ratio              - the dust to gas ratio
+!     hydrogen_column_density        - the column density of hydrogen nuclei
+!     idustSelfShielding             - set to 1 to self-shield the isrf heating rate
+!                                      incident on the dust, else 0 to ignore this
+!
 !     trad     - CMB temperature
 !
 !     is,ie    - start and end indices of active region (zero based)
@@ -43,9 +49,10 @@
 
 !  Arguments
 
-      integer in, is, ie, j, k
+      integer in, is, ie, j, k, idustSelfShielding
 
-      real*8 tdust(in), tgas(in), nh(in), gasgr(in), isrf(in)
+      real*8 tdust(in), tgas(in), nh(in), gasgr(in), isrf(in),
+     &       dust_to_gas_ratio(in), hydrogen_column_density(in)
       real*8 gamma_isrfa, trad
 
 !  Iteration mask
@@ -65,19 +72,23 @@
      &     minpert = 1.e-10_DKIND)
       integer itmax, bi_itmax
       parameter(itmax = 50, bi_itmax = 30)
+      real*8 dust_optical_depth_LW_small, dust_optical_depth_LW_large
+      parameter(dust_optical_depth_LW_small = 8.2e-21_DKIND,
+     &          dust_optical_depth_LW_large = 2.3e-21_DKIND)
 
 !  Locals
 
       integer i, iter, c_done, c_total, nm_done
-
-      real*8 pert_i, trad4
+      real*8 pert_i, trad4, dust_optical_depth_small,
+     &       dust_optical_depth_large
 
 !  Slice Locals
 
       real*8 kgr(in), kgrplus(in), sol(in), solplus(in), 
      &       slope(in), tdplus(in), tdustnow(in), tdustold(in),
      &       pert(in),
-     &       bi_t_mid(in), bi_t_high(in)
+     &       bi_t_mid(in), bi_t_high(in),
+     &       dust_self_shielding_factor(in)
       logical nm_itmask(in), bi_itmask(in)
 
 !\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\/////////////////////////////////
@@ -101,6 +112,21 @@
             gamma_isrf(i) = isrf(i) * gamma_isrfa
          endif
       enddo
+
+!     Attenuate the isrf by the dust self-shielding factor
+      if (idustSelfShielding .eq. 1) then
+         do i = is+1, ie+1
+            dust_optical_depth_small = dust_optical_depth_LW_small *
+     &          (dust_to_gas_ratio(i)/0.01) * hydrogen_column_density(i)
+            dust_optical_depth_large = dust_optical_depth_LW_large *
+     &          (dust_to_gas_ratio(i)/0.01) * hydrogen_column_density(i)
+            dust_self_shielding_factor(i) = exp(-1_DKIND *
+     &          (dust_optical_depth_small + dust_optical_depth_large))
+!           Self-shielding factor cannot be > 1
+            dust_self_shielding_factor(i) = min(dust_self_shielding_factor(i), 1._DKIND)
+            gamma_isrf(i) = gamma_isrf(i) * dust_self_shielding_factor(i)
+         enddo
+      endif
 
       do i = is+1, ie+1
          nm_itmask(i) = itmask(i)

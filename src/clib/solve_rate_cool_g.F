@@ -58,6 +58,7 @@
      &                dmet1, dmet2, dmet3, dmet4, dmet5, dmet6,
      &                dmet7, dmet8, dmet9, dmet10, sne,
      &                iH2shieldcustom, f_shield_custom,
+     &                idustSelfShielding,
      &                itmax, exititmax)
 
 !
@@ -119,6 +120,7 @@
 !    iradstep  - flag to indicate intermediate coupled radiative transfer timestep
 !    irt_honly - flag to indicate applying RT ionization and heating to HI only
 !    iH2shieldcustom - flag to indicate a custom H2 shielding factor is provided
+!    idustSelfShielding - flag to turn on/off dust self-shielding
 
 !    fh       - Hydrogen mass fraction (typically 0.76)
 !    dtoh     - Deuterium to H mass ratio
@@ -197,7 +199,7 @@
      &        iradtrans, iradcoupled, iradstep, irt_honly,
      &        iisrffield, ifdust, iDustEvol,
      &        iH2shieldcustom, itmax, exititmax,
-     &        iDamping, dampingInterval
+     &        iDamping, dampingInterval, idustSelfShielding
 
       real*8  dx, dt, aye, temstart, temend, gamma,
      &        utim, uxyz, uaye, urho, utem, fh, dtoh, z_solar, 
@@ -570,7 +572,8 @@
      &                metDataSize, metCooling, metHeating, clnew,
      &                iVheat, iMheat, Vheat, Mheat,
      &                iTfloor, Tfloor_scalar, Tfloor,
-     &                iisrffield, isrf_habing, itmask)
+     &                iisrffield, isrf_habing, idustSelfShielding,
+     &                itmask)
             
 
             if (ispecies .gt. 0) then

@@ -100,6 +100,7 @@ extern void FORTRAN_NAME(solve_rate_cool_g)(
         gr_float *dmet7, gr_float *dmet8, gr_float *dmet9,
         gr_float *dmet10, gr_float *sne,
         int *iH2shieldcustom, gr_float* f_shield_custom,
+        int *idustSelfShielding,
         int *itmax, int *exititmax);
 
 int local_solve_chemistry(chemistry_data *my_chemistry,
@@ -415,6 +416,7 @@ int local_solve_chemistry(chemistry_data *my_chemistry,
     my_fields->SNe_ThisTimeStep,
     &my_chemistry->H2_custom_shielding,
     my_fields->H2_custom_shielding_factor,
+    &my_chemistry->dust_self_shielding,
     &my_chemistry->max_iterations,
     &my_chemistry->exit_after_iterations_exceeded);
 
