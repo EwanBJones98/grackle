@@ -574,7 +574,6 @@
      &                iTfloor, Tfloor_scalar, Tfloor,
      &                iisrffield, isrf_habing, idustSelfShielding,
      &                itmask)
-            
 
             if (ispecies .gt. 0) then
 

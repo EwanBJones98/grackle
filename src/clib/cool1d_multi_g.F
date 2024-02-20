@@ -138,8 +138,7 @@
      &       gphdl1, dom_inv, tau, ciefudge,
      &       coolunit, dbase1, tbase1, xbase1,
      &       nH2, nother, nSSh, nratio, nssh_he, nratio_he,
-     &       fSShHI, fSShHeI, pe_eps, pe_X, grbeta, c_ljeans,
-     &       l_dustShield
+     &       fSShHI, fSShHeI, pe_eps, pe_X, grbeta, c_ljeans
       character(80) :: userinp 
       integer nan_flag
 
@@ -149,7 +148,7 @@
       real*8 t1(in), t2(in), logtem(in), tdef(in), p2d(in),
      &       tgas(in), tgasold(in), mmw(in), tdust(in), rhoH(in),
      &       mynh(in), metallicity(in), dust2gas(in), edot(in),
-     &       myde(in), gammaha_eff(in), N_H(in)
+     &       myde(in), gammaha_eff(in), N_H(in), l_dustShield(in)
 
 !  Cooling/heating slice locals
 
@@ -765,13 +764,13 @@ c  new (correct) way: (april 4, 2007)
 !     Calculate the H nuclei column density using the Jeans length,
 !       this is used for the dust self-shielding
       if (idustSelfShielding .eq. 1) then
+         c_ljeans = sqrt((gamma * pi_val * kboltz) /
+     &                (GravConst * mass_h * dbase1))
          do i = is+1, ie+1
             if (itmask(i)) then
-               c_ljeans = sqrt((gamma * pi_val * kboltz) /
-     &                     (GravConst * mass_h * dbase1))
-               l_dustShield = c_ljeans *
+               l_dustShield(i) = c_ljeans *
      &                 sqrt(tgas(i) / (d(i,j,k) * mmw(i)))
-               N_H(i) = dom * l_dustShield *
+               N_H(i) = dom * l_dustShield(i) *
      &               (HI(i,j,k) + HII(i,j,k) + HM(i,j,k))
             endif
          enddo
@@ -809,8 +808,6 @@ c  new (correct) way: (april 4, 2007)
          enddo
 
       endif
-
-      
 
 !     --- Compute (external) radiative heating terms ---
 !     Photoionization heating
@@ -979,7 +976,7 @@ c  new (correct) way: (april 4, 2007)
      &                tgas(i), p2d(i)
             call exit(13)
          endif
-        enddo
+      enddo
 
 !     --- Cloudy primordial cooling and heating ---
 

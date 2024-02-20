@@ -45,12 +45,14 @@ extern void FORTRAN_NAME(calc_tdust_3d_g)(
 	int *is, int *js, int *ks,
 	int *ie, int *je, int *ke,
 	double *aye, double *temstart, double *temend,
-	double *fgr, double *gasgra,
-        double *gamma_isrfa, double *isrf,
+	double *dust, double *gasgra,
+  double *gamma_isrfa, double *isrf,
 	double *utem, double *uxyz, double *uaye,
 	double *urho, double *utim,
 	gr_float *gas_temp, gr_float *dust_temp,
-        int *iisrffield, gr_float* isrf_habing);
+  int *iisrffield, gr_float* isrf_habing,
+  int *idustSelfShielding, gr_float *gamma,
+  double *metal_density, int *imetal);
 
 int local_calculate_dust_temperature(chemistry_data *my_chemistry,
                                      chemistry_data_storage *my_rates,
@@ -92,6 +94,11 @@ int local_calculate_dust_temperature(chemistry_data *my_chemistry,
     return FAIL;
   }
 
+  int metal_field_present = TRUE;
+  if (my_fields->metal_density == NULL){
+    metal_field_present = FALSE;
+  }
+
   /* Call the appropriate FORTRAN routine to do the work. */
 
   FORTRAN_NAME(calc_tdust_3d_g)(
@@ -121,7 +128,7 @@ int local_calculate_dust_temperature(chemistry_data *my_chemistry,
        &my_units->a_value,
        &my_chemistry->TemperatureStart,
        &my_chemistry->TemperatureEnd,
-       &my_chemistry->local_dust_to_gas_ratio,
+       my_fields->dust_density,
        my_rates->gas_grain,
        &my_rates->gamma_isrf,
        &my_chemistry->interstellar_radiation_field,
@@ -133,7 +140,11 @@ int local_calculate_dust_temperature(chemistry_data *my_chemistry,
        temperature,
        dust_temperature,
        &my_chemistry->use_isrf_field,
-       my_fields->isrf_habing);
+       my_fields->isrf_habing,
+       &my_chemistry->dust_self_shielding,
+       &my_chemistry->Gamma,
+       my_fields->metal_density,
+       &metal_field_present);
 
   free(temperature);
 

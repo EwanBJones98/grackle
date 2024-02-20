@@ -79,8 +79,7 @@
 !  Locals
 
       integer i, iter, c_done, c_total, nm_done
-      real*8 pert_i, trad4, dust_optical_depth_small,
-     &       dust_optical_depth_large
+      real*8 pert_i, trad4
 
 !  Slice Locals
 
@@ -88,7 +87,9 @@
      &       slope(in), tdplus(in), tdustnow(in), tdustold(in),
      &       pert(in),
      &       bi_t_mid(in), bi_t_high(in),
-     &       dust_self_shielding_factor(in)
+     &       dust_self_shielding_factor(in),
+     &       dust_optical_depth_large(in),
+     &       dust_optical_depth_small(in)
       logical nm_itmask(in), bi_itmask(in)
 
 !\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\/////////////////////////////////
@@ -116,12 +117,12 @@
 !     Attenuate the isrf by the dust self-shielding factor
       if (idustSelfShielding .eq. 1) then
          do i = is+1, ie+1
-            dust_optical_depth_small = dust_optical_depth_LW_small *
+            dust_optical_depth_small(i) = dust_optical_depth_LW_small *
      &          (dust_to_gas_ratio(i)/0.01) * hydrogen_column_density(i)
-            dust_optical_depth_large = dust_optical_depth_LW_large *
+            dust_optical_depth_large(i) = dust_optical_depth_LW_large *
      &          (dust_to_gas_ratio(i)/0.01) * hydrogen_column_density(i)
             dust_self_shielding_factor(i) = exp(-1_DKIND *
-     &          (dust_optical_depth_small + dust_optical_depth_large))
+     &          (dust_optical_depth_small(i) + dust_optical_depth_large(i)))
 !           Self-shielding factor cannot be > 1
             dust_self_shielding_factor(i) = min(dust_self_shielding_factor(i), 1._DKIND)
             gamma_isrf(i) = gamma_isrf(i) * dust_self_shielding_factor(i)
@@ -186,6 +187,7 @@
          call calc_gr_balance_g(tdplus, tgas, kgrplus, trad4, gasgr,
      &        gamma_isrf, nh, nm_itmask, solplus, in, is, ie)
 
+
          do i = is+1, ie+1
             if ( nm_itmask(i) ) then
 
@@ -219,6 +221,7 @@
 !     End loop over slice
          enddo
 
+
 !     Check for all cells converged
          if (c_done .ge. c_total) go to 666
 
@@ -228,6 +231,7 @@
 
 !     End iteration loop for Newton's method
       enddo
+
 
  555  continue
 
@@ -239,6 +243,7 @@
                bi_t_high(i) = tgas(i)
             endif
          enddo
+
 
          do iter = 1, bi_itmax
 
@@ -253,14 +258,17 @@
                endif
             enddo
 
+
             call calc_kappa_gr_g(bi_t_mid, kgr, bi_itmask,
      &           in, is, ie, t_subl)
 
             call calc_gr_balance_g(bi_t_mid, tgas, kgr, trad4, gasgr,
      &           gamma_isrf, nh, bi_itmask, sol, in, is, ie)
 
+
             do i = is+1, ie+1
                if ( bi_itmask(i) ) then
+
 
                   if (sol(i) .gt. 0._DKIND) then
                      tdustnow(i) = bi_t_mid(i)
@@ -268,11 +276,13 @@
                      bi_t_high(i) = bi_t_mid(i)
                   endif
 
+
                   if ((abs(bi_t_high(i) - tdustnow(i)) / tdustnow(i)) 
      &                 .le. bi_tol) then
                      bi_itmask(i) = .false.
                      c_done = c_done + 1
                   endif
+
 
 !     Check for all cells converged
                   if (c_done .ge. c_total) go to 666
@@ -282,6 +292,7 @@
 
 !     End loop over slice
             enddo
+
 
 !     End iteration loop for bisection
          enddo
@@ -304,6 +315,7 @@ c            ERROR_MESSAGE
 
  666  continue
 
+
 !     Copy values back to thrown slice
       do i = is+1, ie+1
          if ( itmask(i) ) then
@@ -324,9 +336,11 @@ c            ERROR_MESSAGE
 c               ERROR_MESSAGE
             endif
 
+
             tdust(i) = tdustnow(i)
          endif
       enddo
+
 
       return
       end

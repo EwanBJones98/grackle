@@ -1,0 +1,238 @@
+/***********************************************************************
+/
+/ Example executable using libgrackle
+/
+/
+/ Copyright (c) 2013, Enzo/Grackle Development Team.
+/
+/ Distributed under the terms of the Enzo Public Licence.
+/
+/ The full license is in the file LICENSE, distributed with this 
+/ software.
+************************************************************************/
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+#include <string.h>
+#include <unistd.h>
+
+#include <grackle.h>
+
+#define mh     1.67262171e-24   
+#define kboltz 1.3806504e-16
+
+void initialise_fields(grackle_field_data* my_fields, int field_size)
+{
+  // Set grid dimension and size.
+  // grid_start and grid_end are used to ignore ghost zones.
+  my_fields->grid_rank = 3;
+  my_fields->grid_dimension = malloc(my_fields->grid_rank * sizeof(int));
+  my_fields->grid_start = malloc(my_fields->grid_rank * sizeof(int));
+  my_fields->grid_end = malloc(my_fields->grid_rank * sizeof(int));
+  my_fields->grid_dx = 0.0; // used only for H2 self-shielding approximation
+
+  for (int i = 0; i < my_fields->grid_rank; i++) {
+    my_fields->grid_dimension[i] = 1; // the active dimension not including ghost zones.
+    my_fields->grid_start[i] = 0;
+    my_fields->grid_end[i] = 0;
+  }
+  my_fields->grid_dimension[0] = field_size;
+  my_fields->grid_end[0] = field_size - 1;
+
+  my_fields->density         = malloc(field_size * sizeof(gr_float));
+  my_fields->internal_energy = malloc(field_size * sizeof(gr_float));
+  my_fields->x_velocity      = malloc(field_size * sizeof(gr_float));
+  my_fields->y_velocity      = malloc(field_size * sizeof(gr_float));
+  my_fields->z_velocity      = malloc(field_size * sizeof(gr_float));
+  // for primordial_chemistry >= 1
+  my_fields->HI_density      = malloc(field_size * sizeof(gr_float));
+  my_fields->HII_density     = malloc(field_size * sizeof(gr_float));
+  my_fields->HeI_density     = malloc(field_size * sizeof(gr_float));
+  my_fields->HeII_density    = malloc(field_size * sizeof(gr_float));
+  my_fields->HeIII_density   = malloc(field_size * sizeof(gr_float));
+  my_fields->e_density       = malloc(field_size * sizeof(gr_float));
+  // for primordial_chemistry >= 2
+  my_fields->HM_density      = malloc(field_size * sizeof(gr_float));
+  my_fields->H2I_density     = malloc(field_size * sizeof(gr_float));
+  my_fields->H2II_density    = malloc(field_size * sizeof(gr_float));
+  // for primordial_chemistry >= 3
+  my_fields->DI_density      = malloc(field_size * sizeof(gr_float));
+  my_fields->DII_density     = malloc(field_size * sizeof(gr_float));
+  my_fields->HDI_density     = malloc(field_size * sizeof(gr_float));
+  // for metal_cooling = 1
+  my_fields->metal_density   = malloc(field_size * sizeof(gr_float));
+  my_fields->dust_density    = malloc(field_size * sizeof(gr_float));
+
+  // volumetric heating rate (provide in units [erg s^-1 cm^-3])
+  my_fields->volumetric_heating_rate = malloc(field_size * sizeof(gr_float));
+  // specific heating rate (provide in units [egs s^-1 g^-1]
+  my_fields->specific_heating_rate = malloc(field_size * sizeof(gr_float));
+
+  // radiative transfer ionization / dissociation rate fields (provide in units [1/s])
+  my_fields->RT_HI_ionization_rate = malloc(field_size * sizeof(gr_float));
+  my_fields->RT_HeI_ionization_rate = malloc(field_size * sizeof(gr_float));
+  my_fields->RT_HeII_ionization_rate = malloc(field_size * sizeof(gr_float));
+  my_fields->RT_H2_dissociation_rate = malloc(field_size * sizeof(gr_float));
+  // radiative transfer heating rate field (provide in units [erg s^-1 cm^-3])
+  my_fields->RT_heating_rate = malloc(field_size * sizeof(gr_float));
+}
+
+void setup_units(code_units* my_units, double initial_redshift)
+{
+  // Set up the units system.
+  // These are conversions from code units to cgs.
+  my_units->comoving_coordinates = 0; // 1 if cosmological sim, 0 if not
+  my_units->density_units = 1.67e-24;
+  my_units->length_units = 1.0;
+  my_units->time_units = 1.0e12;
+  my_units->a_units = 1.0; // units for the expansion factor
+  // Set expansion factor to 1 for non-cosmological simulation.
+  my_units->a_value = 1. / (1. + initial_redshift) / my_units->a_units;
+  set_velocity_units(my_units);
+}
+
+void setup_chemistry(chemistry_data* my_grackle_data, code_units* my_units,
+                      int dust_self_shielding)
+{
+  if (dust_self_shielding < 0 || dust_self_shielding > 1){
+    fprintf(stderr, "Unrecognised value for dust_self_shielding passed = %d\n",
+                      dust_self_shielding);
+    exit(1);
+  }
+
+  if (set_default_chemistry_parameters(my_grackle_data) == 0) {
+    fprintf(stderr, "Error in set_default_chemistry_parameters.\n");
+    exit(1);
+  }
+
+  // Set parameter values for chemistry.
+  // Access the parameter storage with the struct you've created
+  // or with the grackle_data pointer declared in grackle.h (see further below).
+  my_grackle_data->use_grackle = 1;            // chemistry on
+  my_grackle_data->with_radiative_cooling = 1; // cooling on
+  my_grackle_data->primordial_chemistry = 3;   // molecular network with H, He, D
+  my_grackle_data->dust_chemistry = 1;         // dust processes
+  my_grackle_data->metal_cooling = 1;          // metal cooling on
+  my_grackle_data->UVbackground = 1;           // UV background on
+  my_grackle_data->grackle_data_file = "../../input/CloudyData_UVB=HM2012.h5"; // data file
+  my_grackle_data->dust_self_shielding = dust_self_shielding;
+
+  // Finally, initialize the chemistry object.
+  if (initialize_chemistry_data(my_units) == 0) {
+    fprintf(stderr, "Error in initialize_chemistry_data.\n");
+    exit(1);
+  }
+}
+
+void load_fields(grackle_field_data* my_fields, chemistry_data* my_grackle_data,
+                  code_units* my_units, int field_size)
+{
+
+  double tiny_number = 1e-20;
+
+  // Set the fields to appropriate values
+  for (int i = 0; i < field_size; i++) {
+    my_fields->density[i] = 1.0;
+    my_fields->HI_density[i] = my_grackle_data->HydrogenFractionByMass * my_fields->density[i];
+    my_fields->HII_density[i] = tiny_number * my_fields->density[i];
+    my_fields->HM_density[i] = tiny_number * my_fields->density[i];
+    my_fields->HeI_density[i] = (1.0 - my_grackle_data->HydrogenFractionByMass) *
+      my_fields->density[i];
+    my_fields->HeII_density[i] = tiny_number * my_fields->density[i];
+    my_fields->HeIII_density[i] = tiny_number * my_fields->density[i];
+    my_fields->H2I_density[i] = tiny_number * my_fields->density[i];
+    my_fields->H2II_density[i] = tiny_number * my_fields->density[i];
+    my_fields->DI_density[i] = 2.0 * 3.4e-5 * my_fields->density[i];
+    my_fields->DII_density[i] = tiny_number * my_fields->density[i];
+    my_fields->HDI_density[i] = tiny_number * my_fields->density[i];
+    my_fields->e_density[i] = tiny_number * my_fields->density[i];
+    // solar metallicity
+    my_fields->metal_density[i] = my_grackle_data->SolarMetalFractionByMass *
+      my_fields->density[i];
+    my_fields->dust_density[i] = 1e-4 * my_fields->density[i];
+
+    my_fields->x_velocity[i] = 0.0;
+    my_fields->y_velocity[i] = 0.0;
+    my_fields->z_velocity[i] = 0.0;
+
+    // initilize internal energy (here 1000 K for no reason)
+    double temperature_units = get_temperature_units(my_units);
+    my_fields->internal_energy[i] = 1000. / temperature_units;
+
+    my_fields->volumetric_heating_rate[i] = 0.0;
+    my_fields->specific_heating_rate[i] = 0.0;
+
+    my_fields->RT_HI_ionization_rate[i] = 0.0;
+    my_fields->RT_HeI_ionization_rate[i] = 0.0;
+    my_fields->RT_HeII_ionization_rate[i] = 0.0;
+    my_fields->RT_H2_dissociation_rate[i] = 0.0;
+    my_fields->RT_heating_rate[i] = 0.0;
+  }
+}
+
+
+int main(int argc, char *argv[])
+{
+
+  /*********************************************************************
+  / Initial setup of units and chemistry objects.
+  / This should be done at simulation start.
+  *********************************************************************/
+  grackle_verbose = 0;
+  double tiny_number = 1.e-20;
+
+  // Some parameters that we set here as they are likely to change.
+  double initial_redshift = 0.;
+  int field_size = 1;
+
+  // Solve the dust temperature for the shielded and exposed cases for comparison.
+  for (int dust_self_shielding = 0; dust_self_shielding < 2; dust_self_shielding++){
+
+
+    /*********************************************************************
+    / Set up the units, chemistry and fields for the solve.
+    *********************************************************************/
+
+    code_units my_units;
+    setup_units(&my_units, initial_redshift);
+
+    chemistry_data *my_grackle_data;
+    my_grackle_data = malloc(sizeof(chemistry_data));
+    setup_chemistry(my_grackle_data, &my_units, dust_self_shielding);
+
+    grackle_field_data my_fields;
+    initialise_fields(&my_fields, field_size);
+    load_fields(&my_fields, my_grackle_data, &my_units, field_size);
+
+    /*********************************************************************
+    / Calling the chemistry solver
+    / These routines can now be called during the simulation.
+    *********************************************************************/
+
+    // Evolving the chemistry.
+    // some timestep
+    double dt = 3.15e7 * 1e6 / my_units.time_units;
+
+    if (solve_chemistry(&my_units, &my_fields, dt) == 0) {
+      fprintf(stderr, "Error in solve_chemistry.\n");
+      return EXIT_FAILURE;
+    }
+
+    // Calculate dust temperature.
+    gr_float *dust_temperature;
+    dust_temperature = malloc(field_size * sizeof(gr_float));
+    if (calculate_dust_temperature(&my_units, &my_fields,
+                        dust_temperature) == 0) {
+      fprintf(stderr, "Error in calculate_dust_temperature.\n");
+      return EXIT_FAILURE;
+    }
+
+    fprintf(stderr, "dust_temperature = %g K (dust_self_shielding=%d)\n",
+              dust_temperature[0], dust_self_shielding);
+
+  }
+
+  return EXIT_SUCCESS;
+}
+

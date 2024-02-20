@@ -178,7 +178,7 @@ typedef struct
   /* flag for dust self-shielding as prescribed by Li-Hsin Chen et al., 2018,
       specifically equations 17 & 18. This is set to 0 (default) for no shielding,
       or 1 to calculate the shielding. */
-   int dust_self_shielding;
+  int dust_self_shielding;
 
   /* flag to select which formula for calculating k11 you want to use. 
      Setting to 1 will use Savin 2004, 2 will use Abel et al. 1996  */

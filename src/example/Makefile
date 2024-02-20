@@ -151,6 +151,24 @@ c_example: $(MODULES) c_example.o
          fi)
 
 #-----------------------------------------------------------------------
+# DUST SELF SHIELDING
+#-----------------------------------------------------------------------
+
+dust_self_shielding: $(MODULES) dust_self_shielding.o
+	@rm -f $@
+	@echo "Linking"
+	-@$(LD) $(LDFLAGS) -o dust_self_shielding dust_self_shielding.o $(LIBS) $(GRACKLE_LIB) >& $(OUTPUT)
+	@(if [ -e $@ ]; then \
+             echo "Success!"; \
+         else \
+             echo "$(LD) $(LDFLAGS) -o dust_self_shielding dust_self_shielding.o $(LIBS) $(GRACKLE_LIB)" >> temp1; \
+             cat temp1 $(OUTPUT) > temp2; \
+             rm -f temp1; \
+             mv -f temp2 $(OUTPUT); \
+             echo "Failed! See $(OUTPUT) for error messages"; \
+         fi)
+
+#-----------------------------------------------------------------------
 # FORTRAN EXAMPLE
 #-----------------------------------------------------------------------
 

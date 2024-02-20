@@ -13,12 +13,15 @@
      &     is, js, ks, 
      &     ie, je, ke, 
      &     aye, temstart, temend,
-     &     fgr, gasgra,
+     &     dust_density, gasgra,
      &     gamma_isrfa, isrf,
      &     utem, uxyz, uaye,
      &     urho, utim,
      &     gas_temp, dust_temp,
-     &     iisrffield, isrf_habing)
+     &     iisrffield, isrf_habing,
+     &     idustSelfShielding,
+     &     gamma, metal_density,
+     &     imetal)
 
 !  COMPUTE THE DUST TEMPERATURE
 !
@@ -44,37 +47,42 @@
 !  Arguments
 
       integer in, jn, kn, is, js, ks, ie, je, ke, nratec,
-     &        iexpand, ispecies, idim, iisrffield
+     &        iexpand, ispecies, idim, iisrffield, idustSelfShielding,
+     &        imetal
       real*8  aye, temstart, temend,
-     &        utem, uxyz, uaye, urho, utim, fgr, isrf
+     &        utem, uxyz, uaye, urho, utim, isrf, gamma
       R_PREC  d(in,jn,kn),
      &     de(in,jn,kn),   HI(in,jn,kn),   HII(in,jn,kn),
      &     HeI(in,jn,kn), HeII(in,jn,kn), HeIII(in,jn,kn),
      &     HM(in,jn,kn),  H2I(in,jn,kn), H2II(in,jn,kn),
      &     gas_temp(in,jn,kn), dust_temp(in,jn,kn),
-     &     isrf_habing(in,jn,kn)
+     &     isrf_habing(in,jn,kn), dust_density(in,jn,kn),
+     &     metal_density(in,jn,kn)
 
 !  Chemistry tables
       real*8  gasgra(nratec), gamma_isrfa
 
 !  Parameters
 
-      real*8 mh
+      real*8 mh, mu_metal
       parameter (mh = mass_h)
+      parameter (mu_metal = 16._DKIND)    ! approx. mean molecular weight of metals
 
 !  Locals
 
       integer i, j, k
       integer t, dj, dk
       real*8  trad, zr, logtem0, logtem9, dlogtem,
-     &        coolunit, dbase1, tbase1, xbase1
+     &        coolunit, dbase1, tbase1, xbase1, dom,
+     &        cl_jeans
 
 !  Slice locals
  
       integer indixe(in)
       R_PREC  t1(in), t2(in), logtem(in), tdef(in), 
      &     tgas(in), tdust(in), nh(in), gasgr(in),
-     &     myisrf(in)
+     &     myisrf(in), dust2gas(in), ldustShield(in),
+     &     N_H(in), mmw(in)
           
 !  Iteration mask for multi_cool
 
@@ -96,6 +104,7 @@
       dbase1   = urho*(aye*uaye)**3 ! urho is [dens]/a^3 = [dens]/([a]*a')^3 '
       coolunit = (uaye**5 * xbase1**2 * mh**2) / (tbase1**3 * dbase1)
       zr       = 1._RKIND/(aye*uaye) - 1._RKIND
+      dom      = urho*(aye**3)/mh
 
 !     Set CMB temperature
 
@@ -133,38 +142,71 @@
               myisrf(i) = isrf
            endif
 
+!     Compute mean molecular weight
+            if (ispecies .gt. 0) then
+                  mmw(i) =
+     &            (HeI(i,j,k) + HeII(i,j,k) + HeIII(i,j,k))/4._DKIND +
+     &            HI(i,j,k) + HII(i,j,k) + de(i,j,k)
+            endif
+
+            if (ispecies .gt. 1) then
+                  mmw(i) = mmw(i) +
+     &            HM(i,j,k) + (H2I(i,j,k) + H2II(i,j,k))/2._DKIND
+            endif
+
+            if (imetal .eq. 1) then
+                  mmw(i) = mmw(i) + metal_density(i,j,k)/mu_metal
+            endif
+
+            mmw(i) = d(i,j,k) / mmw(i)
+
+!     Calculate dust to gas ratio   
+
+            dust2gas(i) = dust_density(i,j,k) / d(i,j,k)
+
 !     Compute hydrogen number density
 
-           nh(i) = HI(i,j,k) + HII(i,j,k)
-           if (ispecies .gt. 1) then
-              nh(i) = nh(i) + H2I(i,j,k) + H2II(i,j,k)
-           endif
+            nh(i) = HI(i,j,k) + HII(i,j,k)
+            if (ispecies .gt. 1) then
+                  nh(i) = nh(i) + H2I(i,j,k) + H2II(i,j,k)
+            endif
 
 !     We have not converted to proper, so use urho and not dom
 
-           nh(i) = nh(i) * urho / mh
+            nh(i) = nh(i) * urho / mh
 
 !     Compute log temperature and truncate if above/below table max/min
 
-           tgas(i)   = gas_temp(i,j,k)
-           logtem(i) = log(tgas(i))
-           logtem(i) = max(logtem(i), logtem0)
-           logtem(i) = min(logtem(i), logtem9)
+            tgas(i)   = gas_temp(i,j,k)
+            logtem(i) = log(tgas(i))
+            logtem(i) = max(logtem(i), logtem0)
+            logtem(i) = min(logtem(i), logtem9)
 
 !     Compute index into the table and precompute parts of linear interp
 
-           indixe(i) = min(nratec-1,
-     &          max(1,int((logtem(i)-logtem0)/dlogtem,DIKIND)+1))
-           t1(i) = (logtem0 + (indixe(i) - 1)*dlogtem)
-           t2(i) = (logtem0 + (indixe(i)    )*dlogtem)
-           tdef(i) = (logtem(i) - t1(i)) / (t2(i) - t1(i))
+            indixe(i) = min(nratec-1,
+     &        max(1,int((logtem(i)-logtem0)/dlogtem,DIKIND)+1))
+            t1(i) = (logtem0 + (indixe(i) - 1)*dlogtem)
+            t2(i) = (logtem0 + (indixe(i)    )*dlogtem)
+            tdef(i) = (logtem(i) - t1(i)) / (t2(i) - t1(i))
 
 !     Lookup values and do a linear temperature in log(T)
 !     Convert back to cgs
 
-           gasgr(i) = gasgra(indixe(i)) + tdef(i)
+            gasgr(i) = gasgra(indixe(i)) + tdef(i)
      &          *(gasgra(indixe(i)+1) -gasgra(indixe(i)))
-           gasgr(i) = gasgr(i) * fgr * coolunit / mh
+            gasgr(i) = gasgr(i) * dust2gas(i) * coolunit / mh
+
+!     Calculate the H nuclei column density using the Jeans length,
+!       this is used for the dust self-shielding
+            if (idustSelfShielding .eq. 1) then
+                  cl_jeans = sqrt((gamma * pi_val * kboltz) /
+     &                  (GravConst * mass_h * dbase1))
+                  ldustShield(i) = cl_jeans *
+     &                  sqrt(tgas(i) / (d(i,j,k) * mmw(i)))
+                  N_H(i) = dom * ldustShield(i) *
+     &                  (HI(i,j,k) + HII(i,j,k) + HM(i,j,k))
+            endif
 
         enddo
 
@@ -172,7 +214,9 @@
 
         call calc_tdust_1d_g(tdust, tgas, nh, gasgr,
      &       gamma_isrfa, myisrf,
-     &       itmask, trad, in, is, ie, j, k)
+     &       itmask, trad, in, is, ie, j, k,
+     &       dust2gas, N_H,
+     &       idustSelfShielding)
 
 !     Copy slice values back to grid
 
