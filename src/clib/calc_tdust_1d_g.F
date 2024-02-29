@@ -129,6 +129,10 @@
          enddo
       endif
 
+      if (i .eq. 1) then
+         
+      endif
+
       do i = is+1, ie+1
          nm_itmask(i) = itmask(i)
          bi_itmask(i) = itmask(i)

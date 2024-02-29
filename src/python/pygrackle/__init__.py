@@ -30,4 +30,7 @@ from .utilities.units import \
     set_cosmology_units
 
 from .yt_fields import \
-    add_grackle_fields
+    add_grackle_fields_enzo
+
+from .simba_fields import \
+    add_grackle_fields_simba

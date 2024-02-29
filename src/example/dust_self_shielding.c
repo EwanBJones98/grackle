@@ -16,8 +16,10 @@
 #include <math.h>
 #include <string.h>
 #include <unistd.h>
+#include <hdf5.h>
 
 #include <grackle.h>
+#include <read_simba_snapshot.h>
 
 #define mh     1.67262171e-24   
 #define kboltz 1.3806504e-16
@@ -171,6 +173,31 @@ void load_fields(grackle_field_data* my_fields, chemistry_data* my_grackle_data,
   }
 }
 
+void load_fields_simba(grackle_field_data* my_fields, chemistry_data* my_grackle_data,
+                  code_units* my_units, int field_size, char* snapshot_path)
+{
+  char buffer[500];
+
+
+  hid_t file = H5Fopen(snapshot_path, H5F_ACC_RDONLY, H5P_DEFAULT);
+  sprintf(buffer, "/PartType0");
+  hid_t gas_data = H5Gopen(file, buffer);
+  
+  int bnr;
+  enum iofields blocknr;
+
+  // Try to load the density field
+  blocknr = IO_RHO;
+  get_dataset_name(blocknr, buffer);
+  dataset = H5Dopen(gas_data, buffer);
+
+  
+  fprintf(stderr, "%s\n", buffer);
+ 
+
+  H5Fclose(file);
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -204,6 +231,10 @@ int main(int argc, char *argv[])
     grackle_field_data my_fields;
     initialise_fields(&my_fields, field_size);
     load_fields(&my_fields, my_grackle_data, &my_units, field_size);
+
+    load_fields_simba(&my_fields, my_grackle_data, &my_units,
+                        field_size, "/home/ejones/snap_m50n1024_036.hdf5");
+    exit(2);
 
     /*********************************************************************
     / Calling the chemistry solver

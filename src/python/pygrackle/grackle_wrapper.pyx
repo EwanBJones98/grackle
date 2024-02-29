@@ -248,54 +248,6 @@ cdef class chemistry_data:
         def __get__(self):
             cdef double[:] memview = <double[:self.NumberOfTemperatureBins*14]>(<double*> self.rates.k13dd)
             return np.asarray(memview)
-            
-    property use_dust_evol:
-        def __get__(self):
-            return self.data.use_dust_evol
-        def __set__(self, val):
-            self.data.use_dust_evol = val
-
-    property dust_destruction_eff:
-        def __get__(self):
-            return self.data.dust_destruction_eff
-        def __set__(self, val):
-            self.data.dust_destruction_eff = val
-    
-    property sne_coeff:
-        def __get__(self):
-            return self.data.sne_coeff
-        def __set__(self, val):
-            self.data.sne_coeff = val
-        
-    property sne_shockspeed:
-        def __get__(self):
-            return self.data.sne_shockspeed
-        def __set__(self, val):
-            self.data.sne_shockspeed = val
-
-    property dust_grainsize:
-        def __get__(self):
-            return self.data.dust_grainsize
-        def __set__(self, val):
-            self.data.dust_grainsize = val
-
-    property dust_growth_densref:
-        def __get__(self):
-            return self.data.dust_growth_densref
-        def __set__(self, val):
-            self.data.dust_growth_densref = val
-
-    property dust_growth_tauref:
-        def __get__(self):
-            return self.data.dust_growth_tauref
-        def __set__(self, val):
-            self.data.dust_growth_tauref = val
-
-    property SolarAbundances:
-        def __get__(self):
-            return self.data.SolarAbundances
-        def __set__(self, val):
-            self.data.SolarAbundances = val
 
     property k24:
         def __get__(self):
@@ -794,6 +746,10 @@ cdef c_field_data setup_field_data(object fc, int[::1] buf,
     my_fields.volumetric_heating_rate = get_field(fc, "volumetric_heating_rate")
     my_fields.specific_heating_rate = get_field(fc, "specific_heating_rate")
     my_fields.temperature_floor = get_field(fc, "temperature_floor")
+    my_fields.isrf_habing = get_field(fc, "isrf_habing")
+    # print("-- grackle_wrapper --")
+    # print(" + my_fields.isrf_habing = ", my_fields.isrf_habing[0])
+    # print(" + my_fields.dust_density = ", my_fields.dust_density[0])
     return my_fields
 
 def solve_chemistry(fc, my_dt):

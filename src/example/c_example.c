@@ -66,6 +66,7 @@ int main(int argc, char *argv[])
   grackle_data->metal_cooling = 1;          // metal cooling on
   grackle_data->UVbackground = 1;           // UV background on
   grackle_data->grackle_data_file = "../../input/CloudyData_UVB=HM2012.h5"; // data file
+  grackle_data->dust_self_shielding = 0;
 
   // Finally, initialize the chemistry object.
   if (initialize_chemistry_data(&my_units) == 0) {
@@ -118,6 +119,7 @@ int main(int argc, char *argv[])
   my_fields.HDI_density     = malloc(field_size * sizeof(gr_float));
   // for metal_cooling = 1
   my_fields.metal_density   = malloc(field_size * sizeof(gr_float));
+  my_fields.dust_density    = malloc(field_size * sizeof(gr_float));
 
   // volumetric heating rate (provide in units [erg s^-1 cm^-3])
   my_fields.volumetric_heating_rate = malloc(field_size * sizeof(gr_float));
@@ -153,6 +155,7 @@ int main(int argc, char *argv[])
     // solar metallicity
     my_fields.metal_density[i] = grackle_data->SolarMetalFractionByMass *
       my_fields.density[i];
+    my_fields.dust_density[i] = 1e-4 * my_fields.density[i];
 
     my_fields.x_velocity[i] = 0.0;
     my_fields.y_velocity[i] = 0.0;

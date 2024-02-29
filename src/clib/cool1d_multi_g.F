@@ -727,6 +727,9 @@ c  new (correct) way: (april 4, 2007)
 
 !     Calculate dust to gas ratio
 
+      write(*,*) "anydust = ", anydust
+      write(*,*) "igammah = ", igammah
+
       if (anydust .or. (igammah .gt. 0)) then
          if (idustfield .gt. 0) then
             do i = is+1, ie+1

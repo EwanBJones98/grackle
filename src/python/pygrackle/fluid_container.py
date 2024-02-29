@@ -77,10 +77,12 @@ class FluidContainer(dict):
         if self.chemistry_data.use_dust_evol:
             for fluid in _dustMetals:
                 self._setup_fluid(fluid)
-
+        
         for htype in ["specific", "volumetric"]:
             if getattr(self.chemistry_data, "use_%s_heating_rate" % htype, 0):
                 self._setup_fluid("%s_heating_rate" % htype)
+        if self.chemistry_data.use_isrf_field:
+            self._setup_fluid("isrf_habing")
 
     def _setup_fluid(self, fluid_name):
         self[fluid_name] = np.zeros(self.n_vals, self.dtype)
@@ -148,19 +150,31 @@ class FluidContainer(dict):
         self["mean_molecular_weight"] = self["mu"]
 
     def calculate_cooling_time(self):
+        # print("BEGINNING: calculate_cooling_time")
         calculate_cooling_time(self)
+        # print("FINSIHED: calculate_cooling_time")
 
     def calculate_gamma(self):
+        # print("BEGINNING: calculate_gamma")
         calculate_gamma(self)
+        # print("FINSIHED: calculate_gamma")
 
     def calculate_pressure(self):
+        # print("BEGINNING: calculate_pressure")
         calculate_pressure(self)
+        # print("FINSIHED: calculate_pressure")
 
     def calculate_temperature(self):
+        # print("BEGINNING: calculate_temperature")
         calculate_temperature(self)
+        # print("FINSIHED: calculate_temperature")
 
     def calculate_dust_temperature(self):
+        # print("BEGINNING: calculate_dust_temperature")
         calculate_dust_temperature(self)
+        # print("FINSIHED: calculate_dust_temperature")
 
     def solve_chemistry(self, dt):
+        # print("BEGINNING: solve_chemistry")
         solve_chemistry(self, dt)
+        # print("FINSIHED: solve_chemistry")
