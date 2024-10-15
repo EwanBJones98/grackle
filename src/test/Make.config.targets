@@ -1,0 +1,98 @@
+#=======================================================================
+#
+# FILE:        Make.config.targets
+#
+# DESCRIPTION: Makefile targets for all example targets
+#
+# AUTHOR:      Matthew Abruzzo (matthewabruzzo@gmail.com)
+#
+# DATE:        2023-07-21
+#
+# This file is intended to be included by other files. The other file
+# should be sure to define:
+#
+# CC
+# CXX
+# FC
+# CXXFLAGS
+# FFLAGS
+# LDFLAGS
+# LIBS
+# INCLUDES
+# GRACKLE_INCLUDES
+# GRACKLE_LIB
+#
+#=======================================================================
+
+OUTPUT ?= out.compile
+
+#-----------------------------------------------------------------------
+# CONTIGUOUS LOOPING TEST
+#-----------------------------------------------------------------------
+
+contiguous_looping: $(MODULES) contiguous_looping.o
+	@rm -f $@
+	@echo "Linking"
+	-@$(CC) $(LDFLAGS) -o contiguous_looping contiguous_looping.o -lm $(LIBS) $(GRACKLE_LIB) >& $(OUTPUT)
+	@(if [ -e $@ ]; then \
+             echo "Success!"; \
+         else \
+             echo "$(LD) $(LDFLAGS) -o c_local_example c_local_example.o $(LIBS) $(GRACKLE_LIB)" >> temp1; \
+             cat temp1 $(OUTPUT) > temp2; \
+             rm -f temp1; \
+             mv -f temp2 $(OUTPUT); \
+             echo "Failed! See $(OUTPUT) for error messages"; \
+         fi)
+
+#-----------------------------------------------------------------------
+# Implicit rules
+#-----------------------------------------------------------------------
+
+.SUFFIXES: .c .C .F
+
+.C.o:
+	@rm -f $@
+	@echo "Compiling $<"
+	-@($(CXX) -c -o $@ $(DEFINES) $(CXXFLAGS) $(INCLUDES) $(GRACKLE_INCLUDE) $*.C) >& $(OUTPUT)
+	@(if [ ! -e $@ ]; then \
+             echo; \
+             echo "$(CXX) -c -o $@ $(DEFINES) $(CXXFLAGS) $(INCLUDES) $(GRACKLE_INCLUDE) $*.C"; \
+             echo; \
+             $(CXX) -c -o $@ $(DEFINES) $(CXXFLAGS) $(INCLUDES) $(GRACKLE_INCLUDE) $*.C;\
+             echo; \
+             exit 1; \
+          fi)
+
+.c.o:
+	@rm -f $@
+	@echo "Compiling $<"
+	-@($(CC) -c -o $@ $(DEFINES) $(CFLAGS) $(INCLUDES) $(GRACKLE_INCLUDE) $*.c) >& $(OUTPUT)
+	@(if [ ! -e $@ ]; then \
+             echo; \
+             echo "$(CC) -c -o $@ $(DEFINES) $(CFLAGS) $(INCLUDES) $(GRACKLE_INCLUDE) $*.c"; \
+             echo; \
+             $(CC) -c -o $@ $(DEFINES) $(CFLAGS) $(INCLUDES) $(GRACKLE_INCLUDE) $*.c;\
+             echo; \
+             exit 1; \
+          fi)
+
+# the following target uses -O1 optimization because problems can arise with
+# higher levels of optimization. A comment in fortran_example.F provides more
+# details about the problems
+.F.o:
+	@rm -f $@
+	@echo "Compiling $<"
+	-@($(FC) -c -o $@ $(DEFINES) $(FFLAGS) -O1 $(INCLUDES) $(GRACKLE_INCLUDE) $*.F) >& $(OUTPUT)
+	@(if [ ! -e $@ ]; then \
+             echo; \
+             echo "$(FC) -c -o $@ $(DEFINES) $(FFLAGS) $(INCLUDES) $(GRACKLE_INCLUDE) $*.F"; \
+             echo; \
+             $(FC) -c -o $@ $(DEFINES) $(FFLAGS) $(INCLUDES) $(GRACKLE_INCLUDE) $*.F;\
+             echo; \
+             exit 1; \
+          fi)
+
+#-----------------------------------------------------------------------
+
+clean:
+	-@rm -f *.o *.mod *.f *.f90 *~ *.exe $(OUTPUT) contiguous_looping
